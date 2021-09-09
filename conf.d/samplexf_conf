@@ -49,7 +49,7 @@ server {
     include h5bp/xf2.conf;
 
     include h5bp/php.conf;
-    include h5bp/basic.conf;
+    include h5bp/basic_xf.conf;
     include h5bp/errors/custom_errors.conf;
     include h5bp/security/strict-transport-security.conf;
     include h5bp/security/cross-origin-policy.conf;
