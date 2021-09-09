@@ -1,0 +1,59 @@
+server {
+    listen 80;
+    server_name domain.com www.domain.com;
+    return 301 https://domain.com$request_uri;
+
+    root      /var/www/html/$host;
+    error_log /var/www/html/error.log;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    server_name www.domain.com;
+
+    include h5bp/tls/ssl_engine.conf;
+    include h5bp/tls/policy_balanced.conf;
+    include h5bp/tls/ocsp_stapling.conf;
+
+    ssl_certificate         /etc/letsencrypt/live/domain.com/fullchain.pem;
+    ssl_certificate_key     /etc/letsencrypt/live/domain.com/privkey.pem;
+    ssl_trusted_certificate /etc/letsencrypt/live/domain.com/chain.pem;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name domain.com;
+       
+    include h5bp/tls/ssl_engine.conf;
+    include h5bp/tls/policy_balanced.conf;
+    include h5bp/tls/ocsp_stapling.conf;
+
+    ssl_certificate         /etc/letsencrypt/live/domain.com/fullchain.pem;
+    ssl_certificate_key     /etc/letsencrypt/live/domain.com/privkey.pem;
+    ssl_trusted_certificate /etc/letsencrypt/live/domain.com/chain.pem;
+    
+    root      /var/www/html/$host;
+    error_log /var/www/html/error.log;
+
+    ### Strip common query strings from urls
+    if ($ignorearg) { rewrite ^ $uri? permanent; }
+
+    ### Max Upload
+    client_max_body_size 20m;
+
+    include h5bp/xf2.conf;
+
+    include h5bp/php.conf;
+    include h5bp/basic.conf;
+    include h5bp/errors/custom_errors.conf;
+    include h5bp/security/strict-transport-security.conf;
+    include h5bp/security/cross-origin-policy.conf;
+    include h5bp/location/web_performance_filename-based_cache_busting.conf;
+    include h5bp/location/web_performance_svgz-compression.conf;
+    include h5bp/drop.conf;
+}
