@@ -1,6 +1,6 @@
-# https://help.github.com/en/actions
+# https://docs.github.com/actions
 
-name: server
+name: Server CI
 
 on: [push, pull_request]
 
@@ -8,7 +8,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v2.3.5
 
       - name: Check configuration
         uses: docker://nginx:latest
@@ -19,10 +19,10 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v2.3.5
 
       - name: Test with server-configs-test
-        uses: h5bp/server-configs-test@5.0.1
+        uses: h5bp/server-configs-test@5.0.2
         with:
           command: test
           server: nginx
@@ -32,7 +32,7 @@ jobs:
           tests: basic-file-access;caching;cache-busting;custom-errors;forbidden-files;precompressed-files-gzip;rewrites;ssl
 
       - name: Benchmark
-        uses: h5bp/server-configs-test@5.0.1
+        uses: h5bp/server-configs-test@5.0.2
         with:
           command: benchmark
           server: nginx
