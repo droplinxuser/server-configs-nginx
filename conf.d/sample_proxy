@@ -5,7 +5,7 @@ server {
     #return 301 https://$host$request_uri;
 
     root      /var/www/html/$host;
-    error_log /var/www/html/error.log;
+    error_log /var/www/html/$host_error.log;
 
     ### Max Up&Down
     client_max_body_size 5m;
@@ -43,7 +43,7 @@ server {
     ssl_trusted_certificate /etc/letsencrypt/live/cdn.domain.com/chain.pem;
     
     root      /var/www/html/$host;
-    error_log /var/www/html/error.log;
+    error_log /var/www/html/$host_error.log;
 
     ### Max Up&Down
     client_max_body_size 5m;
