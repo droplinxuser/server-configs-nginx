@@ -7,15 +7,16 @@ server {
     root      /var/www/html/$host;
     error_log /var/www/html/error.log;
 
-    ### Max Upload
-    client_max_body_size 2m;
-    sendfile_max_chunk 2m;
-    limit_rate_after 2m;
-    limit_rate 1024k;
+    ### Max Up&Down
+    client_max_body_size 5m;
+    sendfile_max_chunk   5m;
+    limit_rate_after     5m;
+    limit_rate        5120k;
 
     location / {
         proxy_pass https://domain1.com;
         include h5bp/proxy.conf;
+        limit_except GET {deny  all;}
     }
 
     include h5bp/errors/custom_errors.conf;
@@ -40,15 +41,16 @@ server {
     root      /var/www/html/$host;
     error_log /var/www/html/error.log;
 
-    ### Max Upload
-    client_max_body_size 2m;
-    sendfile_max_chunk 2m;
-    limit_rate_after 2m;
-    limit_rate 1024k;
+    ### Max Up&Down
+    client_max_body_size 5m;
+    sendfile_max_chunk   5m;
+    limit_rate_after     5m;
+    limit_rate        5120k;
 
     location / {
         proxy_pass https://domain1.com;
         include h5bp/proxy.conf;
+        limit_except GET {deny  all;}
     }
 
     include h5bp/errors/custom_errors.conf;
