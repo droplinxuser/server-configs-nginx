@@ -41,7 +41,7 @@ server {
     ssl_trusted_certificate /etc/letsencrypt/live/domain.com/chain.pem;
     
     root      /var/www/html/$host;
-    error_log /var/www/html/error.log;
+    error_log /var/www/html/$host_error.log;
 
     ### Max Upload
     client_max_body_size 20m;
