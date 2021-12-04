@@ -43,9 +43,6 @@ server {
     root      /var/www/html/$host;
     error_log /var/www/html/error.log;
 
-    ### Strip common query strings from urls
-    if ($ignorearg) { rewrite ^ $uri? permanent; }
-
     ### Max Upload
     client_max_body_size 20m;
 
