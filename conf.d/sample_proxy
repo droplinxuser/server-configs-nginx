@@ -14,7 +14,7 @@ server {
     limit_rate        5120k;
 
     location / {
-		  try_files $uri $uri/ @cdn_back;
+        try_files $uri $uri/ @cdn_back;
     }
 
     location @cdn_back {
@@ -52,7 +52,7 @@ server {
     limit_rate        5120k;
 
     location / {
-		  try_files $uri $uri/ @cdn_back;
+        try_files $uri $uri/ @cdn_back;
     }
 
     location @cdn_back {
