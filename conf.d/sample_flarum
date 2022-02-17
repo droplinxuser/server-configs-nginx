@@ -4,12 +4,8 @@ server {
     server_name domain.com www.domain.com;
     return 301 https://domain.com$request_uri;
 
-    root      /var/www/html/$host;
+    root      /var/www/html/$host/public;
     error_log /var/www/html/error.log;
-
-    location / {
-        try_files $uri $uri/ =404;
-    }
 }
 
 server {
@@ -40,7 +36,7 @@ server {
     ssl_certificate_key     /etc/letsencrypt/live/domain.com/privkey.pem;
     ssl_trusted_certificate /etc/letsencrypt/live/domain.com/chain.pem;
     
-    root      /var/www/html/$host;
+    root      /var/www/html/$host/public;
     error_log /var/www/html/$host_error.log;
 
     ### Max Upload
