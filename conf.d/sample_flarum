@@ -46,9 +46,9 @@ server {
     ### Max Upload
     client_max_body_size 20m;
 
-	location / {
-		try_files $uri $uri/ /index.php?$query_string;
-	}
+    location / {
+    try_files $uri $uri/ /index.php?$query_string;
+    }
 
     include h5bp/php.conf;
     include h5bp/basic_xf.conf;
