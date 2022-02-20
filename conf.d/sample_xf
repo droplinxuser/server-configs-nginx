@@ -38,12 +38,9 @@ server {
     
     root      /var/www/html/domain.com/public;
     error_log /var/www/html/domain.com/error.log;
-
-    ### Max Upload
     client_max_body_size 20m;
 
     include h5bp/xf2.conf;
-
     include h5bp/php.conf;
     include h5bp/basic_xf.conf;
     include h5bp/errors/custom_errors.conf;
