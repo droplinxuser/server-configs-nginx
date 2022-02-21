@@ -45,10 +45,7 @@ server {
     limit_rate_after     5m;
     limit_rate        5120k;
 
-    location / {
-    try_files $uri $uri/ /index.php?$query_string;
-    }
-
+    include h5bp/flarum.conf;
     include h5bp/php_flarum.conf;
     include h5bp/basic_flarum.conf;
     include h5bp/errors/custom_errors.conf;
