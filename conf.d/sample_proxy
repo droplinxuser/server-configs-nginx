@@ -18,7 +18,7 @@ server {
 
     set $cdn_origin origin.com;
     location @cdn_back {
-        proxy_pass https://$cdn_origin;
+        proxy_pass http://$cdn_origin;
         include h5bp/proxy.conf;
         limit_except GET {deny  all;}
     }
