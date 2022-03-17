@@ -16,7 +16,7 @@ server {
         try_files $uri $uri/ @cdn_back;
     }
 
-    set $cdn_origin domain-orig.com;
+    set $cdn_origin origin.com;
     location @cdn_back {
         proxy_pass https://$cdn_origin;
         include h5bp/proxy.conf;
@@ -54,7 +54,7 @@ server {
         try_files $uri $uri/ @cdn_back;
     }
 
-    set $cdn_origin domain-orig.com;
+    set $cdn_origin origin.com;
     location @cdn_back {
         proxy_pass https://$cdn_origin;
         proxy_http_version 1.1;
