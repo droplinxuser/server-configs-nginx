@@ -13,7 +13,7 @@ server {
     limit_rate        5120k;
 
     location / {
-        try_files $uri $uri/ @cdn_back;
+        try_files $uri @cdn_back;
     }
 
     set $cdn_origin origin.com;
@@ -51,7 +51,7 @@ server {
     limit_rate        5120k;
 
     location / {
-        try_files $uri $uri/ @cdn_back;
+        try_files $uri @cdn_back;
     }
 
     set $cdn_origin origin.com;
