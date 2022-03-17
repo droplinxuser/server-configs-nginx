@@ -1,26 +1,27 @@
 server {
     listen 80;
     server_name cdn.domain.com;
-    #return 301 https://$host$request_uri;
 
     root      /var/www/html/cdn.domain.com;
     error_log /var/www/html/cdn.domain.com/error.log;
 
-    ### Max Up&Down
     client_max_body_size 5m;
     sendfile_max_chunk   5m;
     limit_rate_after     5m;
     limit_rate        5120k;
 
+    set $cdn_origin http://origin.com;
+    add_header Link "<$cdn_origin$request_uri>; rel=\"canonical\"";
+    add_header Access-Control-Allow-Origin *;
+
     location / {
         try_files $uri @cdn_back;
     }
 
-    set $cdn_origin origin.com;
     location @cdn_back {
-        proxy_pass http://$cdn_origin;
+        proxy_pass $cdn_origin;
         include h5bp/proxy.conf;
-        limit_except GET {deny  all;}
+        limit_except GET {deny all;}
     }
 
     include h5bp/errors/custom_errors.conf;
@@ -44,24 +45,25 @@ server {
     root      /var/www/html/cdn.domain.com;
     error_log /var/www/html/cdn.domain.com/error.log;
 
-    ### Max Up&Down
     client_max_body_size 5m;
     sendfile_max_chunk   5m;
     limit_rate_after     5m;
     limit_rate        5120k;
 
+    set $cdn_origin https://origin.com;
+    add_header Link "<$cdn_origin$request_uri>; rel=\"canonical\"";
+    add_header Access-Control-Allow-Origin *;
+
     location / {
         try_files $uri @cdn_back;
     }
 
-    set $cdn_origin origin.com;
     location @cdn_back {
-        proxy_pass https://$cdn_origin;
+        proxy_pass $cdn_origin;
         proxy_http_version 1.1;
-        proxy_set_header   "Connection" "";
-
+        proxy_set_header "Connection" "";
         include h5bp/proxy.conf;
-        limit_except GET {deny  all;}
+        limit_except GET {deny all;}
     }
 
     include h5bp/errors/custom_errors.conf;
