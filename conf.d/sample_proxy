@@ -11,7 +11,7 @@ server {
     limit_rate_after     5m;
     limit_rate        5120k;
 
-    set $cdn_origin http://domain.com.com;
+    set $cdn_origin http://domain.com;
     add_header Access-Control-Allow-Origin *;
 
     location / {
@@ -52,7 +52,7 @@ server {
     limit_rate_after     5m;
     limit_rate        5120k;
 
-    set $cdn_origin https://domain.com.com;
+    set $cdn_origin https://domain.com;
     add_header Access-Control-Allow-Origin *;
 
     location / {
