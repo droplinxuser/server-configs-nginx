@@ -2,37 +2,7 @@ server {
     listen      80;
     listen [::]:80 deferred default_server backlog=16383 reuseport fastopen=256;
     server_name cdn.domain.com;
-
-    root      /var/www/html/cdn.domain.com;
-    error_log /var/www/html/cdn.domain.com/error.log;
-
-    client_max_body_size 5m;
-    sendfile_max_chunk   5m;
-    limit_rate_after     5m;
-    limit_rate        5120k;
-
-    set $cdn_origin http://domain.com;
-    add_header Access-Control-Allow-Origin *;
-
-    location / {
-        try_files $uri @cdn_back;
-    }
-
-    location @302_back {
-        return 302 $cdn_origin$request_uri;
-    }
-
-    location @cdn_back {
-        proxy_pass $cdn_origin;
-        include h5bp/proxy.conf;
-        limit_except GET {deny all;}
-        add_header Link "<$cdn_origin$request_uri>; rel=\"canonical\"";
-    }
-
-    include h5bp/errors/custom_errors.conf;
-    include h5bp/location/web_performance_filename-based_cache_busting.conf;
-    include h5bp/location/web_performance_svgz-compression.conf;
-    include h5bp/drop.conf;
+    return 301 https://cdn.domain.com$request_uri;
 }
 
 server {
@@ -49,18 +19,30 @@ server {
     ssl_trusted_certificate /etc/letsencrypt/live/cdn.domain.com/chain.pem;
     
     root      /var/www/html/cdn.domain.com;
-    error_log /var/www/html/cdn.domain.com/error.log;
+    error_log /var/www/html/error.log;
 
-    client_max_body_size 5m;
+    client_max_body_size 1m;
     sendfile_max_chunk   5m;
     limit_rate_after     5m;
     limit_rate        5120k;
 
+    ### Global Limit
+    limit_req zone=limit_req_post_head burst=1   nodelay;
+    limit_req zone=limit_req_get_perip burst=150 nodelay;
+
     set $cdn_origin https://domain.com;
-    add_header Access-Control-Allow-Origin *;
 
     location / {
+        try_files $uri @302_back;
+        limit_except GET { deny all; }
+        add_header Access-Control-Allow-Origin *;
+        add_header Link "<$cdn_origin$request_uri>; rel=\"canonical\"";
+    }
+
+    ### XF2
+    location ~ ^/(attachments|media|proxy.php) {
         try_files $uri @cdn_back;
+        limit_except GET { deny all; }
     }
 
     location @302_back {
@@ -72,7 +54,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header "Connection" "";
         include h5bp/proxy.conf;
-        limit_except GET {deny all;}
+        add_header Access-Control-Allow-Origin *;
         add_header Link "<$cdn_origin$request_uri>; rel=\"canonical\"";
     }
 
