@@ -50,6 +50,7 @@ server {
     }
 
     location @cdn_back {
+        limit_except GET {deny all;}
         proxy_pass $cdn_origin;
         include h5bp/proxy.conf;
         add_header Link "<$cdn_origin$request_uri>; rel=\"canonical\"";
