@@ -41,6 +41,13 @@ server {
     client_max_body_size 20m;
 
     include h5bp/xf2.conf;
+    
+    location ~ ^/(admin.php|install) {
+        auth_basic "Private";
+        auth_basic_user_file htpasswd/xfadmin;
+        include              h5bp/php.conf;
+    }
+    
     include h5bp/php.conf;
     include h5bp/basic_xf.conf;
     include h5bp/errors/custom_errors.conf;
