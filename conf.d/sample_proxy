@@ -53,7 +53,6 @@ server {
         proxy_pass $cdn_origin;
         proxy_set_header "Connection" "";
         include h5bp/proxy.conf;
-        add_header Access-Control-Allow-Origin *;
         add_header Link "<$cdn_origin$request_uri>; rel=\"canonical\"";
     }
 
