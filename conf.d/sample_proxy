@@ -51,7 +51,6 @@ server {
 
     location @cdn_back {
         proxy_pass $cdn_origin;
-        proxy_http_version 1.1;
         proxy_set_header "Connection" "";
         include h5bp/proxy.conf;
         add_header Access-Control-Allow-Origin *;
