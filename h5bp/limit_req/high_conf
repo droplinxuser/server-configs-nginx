@@ -1,0 +1,2 @@
+limit_req zone=limit_req_post_head burst=10  nodelay;
+limit_req zone=limit_req_get_perip burst=200 nodelay;
