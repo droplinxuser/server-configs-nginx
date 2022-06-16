@@ -1,0 +1,2 @@
+### FastCGI Cache ###
+fastcgi_cache_path /var/run/fpm_cache levels=1:2 keys_zone=fastcgicache:128m inactive=8h;
