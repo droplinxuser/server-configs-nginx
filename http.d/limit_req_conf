@@ -1,0 +1,13 @@
+### Map GET, POST & HEAD method
+map $request_method $req_post_head_method {
+    default $binary_remote_addr;
+    GET "";
+}
+map $request_method $req_get_https_method {
+    GET $binary_remote_addr;
+    default "";
+}
+
+limit_req_zone $req_post_head_method zone=limit_req_post_head:32m rate=15r/s;
+limit_req_zone $req_get_https_method zone=limit_req_get_perip:64m rate=30r/s;
+limit_req_status 444;
