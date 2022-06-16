@@ -27,8 +27,7 @@ server {
     limit_rate        5120k;
 
     ### Global Limit
-    limit_req zone=limit_req_post_head burst=1   nodelay;
-    limit_req zone=limit_req_get_perip burst=150 nodelay;
+    include h5bp/limit_req/high.conf;
 
     set $cdn_origin https://domain.com;
 
