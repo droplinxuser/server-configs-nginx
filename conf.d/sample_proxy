@@ -27,7 +27,7 @@ server {
     limit_rate        5120k;
 
     ### Global Limit
-    include h5bp/limit_req/high.conf;
+    include h5bp/limit_req/*_high.conf;
 
     set $cdn_origin https://domain.com;
 
