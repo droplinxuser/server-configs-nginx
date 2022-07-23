@@ -1,1 +1,1 @@
-waf_zone name=waf size=25m;
+waf_zone name=waf size=16m;
