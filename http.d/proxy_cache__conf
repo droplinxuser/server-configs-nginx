@@ -1,2 +1,2 @@
-### CDN Cache ####
-proxy_cache_path /var/run/cdn_proxy levels=1:2 keys_zone=cdn_proxy:128m max_size=512g inactive=182d use_temp_path=off;
+### Proxy Cache ####
+proxy_cache_path /home/proxy_cache levels=1:2 keys_zone=cdn_proxy:128m max_size=512g inactive=182d use_temp_path=off;
