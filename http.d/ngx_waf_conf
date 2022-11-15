@@ -1,2 +1,2 @@
-waf_zone name=waf size=16m;
+waf_zone name=waf size=32m;
 waf_verify_bot on;
