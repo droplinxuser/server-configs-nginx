@@ -1,2 +1,3 @@
 waf_zone name=waf size=32m;
 waf_verify_bot on;
+waf_action cc_deny=444;
