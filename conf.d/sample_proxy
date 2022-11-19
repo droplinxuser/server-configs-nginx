@@ -22,9 +22,6 @@ server {
     error_log /var/www/html/cdn.domain.com/error.log;
 
     client_max_body_size 1m;
-    sendfile_max_chunk   5m;
-    limit_rate_after     5m;
-    limit_rate        5120k;
 
     ### Global Limit
     include h5bp/limit_req/*_high.conf;
