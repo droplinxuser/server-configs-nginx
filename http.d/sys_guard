@@ -1,0 +1,8 @@
+    sysguard on;
+    sysguard_load load=8 action=/loadlimit;
+    sysguard_interval 3s;
+
+    location /loadlimit {
+        return 200 'The server overloaded. Please try again later or reload this page after a few seconds.';
+        add_header Content-Type text/plain;
+    }
