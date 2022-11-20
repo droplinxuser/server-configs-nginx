@@ -2,8 +2,10 @@ waf_zone name=waf size=32m;
 waf_verify_bot on;
 waf_action cc_deny=444;
 
-### NGX_Waf
-#waf on;
-#waf_mode STD;
-#waf_cc_deny on rate=100r/m duration=10m zone=waf:cc;
-#waf_cache on capacity=50;
+    ### NGX_Waf
+    waf on;
+    waf_verify_bot on;
+    waf_mode STD;
+    waf_cc_deny on rate=30r/m duration=2m zone=waf:cc;
+    waf_cache on capacity=50;
+    waf_under_attack on file=/etc/nginx/attack.html;
