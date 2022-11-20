@@ -1,6 +1,6 @@
 waf_zone name=waf size=32m;
 
-### NGX_Waf
+### Ngx_Waf
 #waf on;
 #waf_verify_bot on;
 #waf_action cc_deny=444;
