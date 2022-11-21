@@ -3,7 +3,6 @@ waf_zone name=waf size=32m;
 ### Ngx_Waf
 #waf on;
 #waf_verify_bot on;
-#waf_action cc_deny=444;
 
 #waf_mode STD;
 #waf_cc_deny on rate=30r/30s duration=1m zone=waf:cc;
@@ -11,3 +10,4 @@ waf_zone name=waf size=32m;
 #waf_under_attack on file=/etc/nginx/attack.html;
 
 #waf_captcha on prov=reCAPTCHAv3 sitekey=your_sitekey secret=your_secret expire=4h;
+#waf_action cc_deny=CAPTCHA zone=waf:action;
