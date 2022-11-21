@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Please complete the captcha</title>
+  <script src="https://www.recaptcha.net/recaptcha/api.js"></script>
+  <style type="text/css">
+    div {
+      text-align: center;
+    }
+  </style>
+  <script>
+    function onSubmit(token) {
+      let reqBody = "g-recaptcha-response=" + token;
+      let httpRequest = new XMLHttpRequest();
+      httpRequest.open("POST", "/captcha");
+      httpRequest.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+      httpRequest.send(reqBody);
+      httpRequest.onreadystatechange = () => {
+        if (httpRequest.readyState == 4 && httpRequest.status == 200) {
+          let text = httpRequest.responseText;
+          switch (text) {
+            case "good":
+              window.location.reload();
+              break;
+            case "bad":
+              alert("Bad CAPTCHA. Please refresh the page and try again.");
+              break;
+            default:
+              alert("An unexpected error has occurred. Please refresh the page and try again.");
+          }
+        }
+      }
+    }
+  </script>
+</head>
+
+<body>
+  <h1>Please complete the captcha.</h1>
+  <div>
+    <button class="g-recaptcha" data-sitekey="********your_site_key********"
+    data-callback='onSubmit' style="font-size:25px" data-action='submit'>Click to Proceed</button>
+  </div>
+</body>
+
+</html>
