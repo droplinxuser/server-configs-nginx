@@ -6,6 +6,6 @@ waf_zone name=waf size=32m;
 #waf_action cc_deny=444;
 
 #waf_mode STD;
-#waf_cc_deny on rate=30r/m duration=2m zone=waf:cc;
+#waf_cc_deny on rate=20r/m duration=1m zone=waf:cc size=32m;
 #waf_cache on capacity=50;
 #waf_under_attack on file=/etc/nginx/attack.html;
