@@ -10,4 +10,4 @@ waf_zone name=waf size=32m;
 #waf_cache on capacity=50;
 #waf_under_attack on file=/etc/nginx/attack.html;
 
-#waf_captcha on prov=reCAPTCHAv3 file=/full/path sitekey=your_sitekey secret=your_secret expire=4h verify=/captcha max_fails=10:1m zone=waf:cc;
+#waf_captcha on prov=reCAPTCHAv3 file=/full/path sitekey=your_sitekey secret=your_secret expire=4h max_fails=10:1m zone=waf:cc;
