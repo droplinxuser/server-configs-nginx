@@ -1,0 +1,4 @@
+### Only enable if using ppa:eilander/nginx
+### Deb myguard custom
+ssl_dyn_rec_enable on;
+ssl_conf_command Options KTLS;
