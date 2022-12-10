@@ -6,4 +6,4 @@ cd ~
 /usr/bin/unzip -q main.zip
 /usr/bin/rm -rf server-configs-nginx-main/{*.md,*.txt,.git*}
 /usr/bin/rsync -a server-configs-nginx-main/ /etc/nginx/
-service nginx restart; nginx -t
+nginx -t && service nginx reload
