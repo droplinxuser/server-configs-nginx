@@ -1,9 +1,7 @@
-##### Map WebSocket
-
 map $http_upgrade $connection_upgrade {
-    default upgrade;
-    '' close;
-  }
+        default upgrade;
+        ''      close;
+    }
 
 upstream xf_websocket {
     zone xf_ws_zone 256k;
@@ -13,5 +11,3 @@ upstream xf_websocket {
     keepalive_timeout      1h;
     keepalive_time         1h;
 }
-
-##### End WebSocket
