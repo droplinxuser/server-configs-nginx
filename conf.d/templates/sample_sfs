@@ -37,43 +37,42 @@ server {
     error_log /var/www/html/domain.com/error.log;
     
     ### Start SFS
-    	client_max_body_size 101m;
+    client_max_body_size 101m;
 
-	location / {
-		try_files $uri $uri/ @shortkeyuri;
-	}
+    location / {
+        try_files $uri $uri/ @shortkeyuri;
+    }
 
-	location @shortkeyuri {
-		rewrite "^/([a-zA-Z2-9]{5,})$" /download.php?shortkey=$1&$query_string;
-	}
-	
-	location ^~ /data/ { internal; }
+    location @shortkeyuri {
+        rewrite "^/([a-zA-Z2-9]{5,})$" /download.php?shortkey=$1&$query_string;
+    }
 
-	location /download {
-		rewrite ^/download/([a-z0-9]+)\.html$ /download.php?key=$1&$query_string;
-	}
+    location /download {
+        rewrite ^/download/([a-z0-9]+)\.html$ /download.php?key=$1&$query_string;
+    }
 	
-	location /files {
-		rewrite ^/files/([a-z0-9]+)\..*$ /files.php?key=$1;
-	}
+    location /files {
+        rewrite ^/files/([a-z0-9]+)\..*$ /files.php?key=$1;
+    }
 
-	location /delete {
-		rewrite ^/delete/([a-z0-9]+)\.html$ /delete.php?key=$1&$query_string;
-	}
+    location /delete {
+        rewrite ^/delete/([a-z0-9]+)\.html$ /delete.php?key=$1&$query_string;
+    }
 	
-	location /filesgroup {
-		rewrite ^/filesgroup/([a-z0-9]+)\.html$ /filesgroup.php?key=$1;
-	}
+    location /filesgroup {
+        rewrite ^/filesgroup/([a-z0-9]+)\.html$ /filesgroup.php?key=$1;
+    }
 	
-	location = /img/cap1.png {
-		rewrite ^/img/cap1.png$ /cpc/captcha.php?$query_string;
-	}
+    location = /img/cap1.png {
+        rewrite ^/img/cap1.png$ /cpc/captcha.php?$query_string;
+    }
 	
-	location ~ ^/(config.php) { internal; }
+    location ^~ /config.php { internal; }
+    location ^~ /data/      { internal; }
 
-	error_page 404 = @redirectto;
-	error_page 500 = @redirectto;
-	location @redirectto { return 302 https://main.site/; }
+    error_page 404 = @redirectto;
+    error_page 500 = @redirectto;
+    location @redirectto { return 302 https://main.site/; }
     ### End SFS
 
     include h5bp/php.conf;
