@@ -60,14 +60,6 @@ server {
 		index index.php;
 		try_files $uri $uri/ /index.php$is_args$query_string;
 	}
-
-	location ~ ^/(dashboard) {
-		auth_basic "Private";
-		auth_basic_user_file /usr/local/nginx/conf/phc_htpasswd_phc2k16;
-		
-		try_files $uri $uri/ /index.php$is_args$query_string;
-		include /usr/local/nginx/conf/php.conf;
-	}
     ### End Chev
     
     include h5bp/php.conf;
