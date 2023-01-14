@@ -61,6 +61,13 @@ server {
         index index.php;
         try_files $uri $uri/ /index.php$is_args$query_string;
     }
+    
+    location ~ ^/(dashboard|update) {
+        try_files $uri $uri/ /index.php$is_args$query_string;
+        auth_basic "Private";
+        auth_basic_user_file htpasswd/chev;
+        include              h5bp/php.conf;
+    }
     ### End Chev
     
     include h5bp/php.conf;
