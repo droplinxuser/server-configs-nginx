@@ -35,8 +35,8 @@ server {
     
     root      /var/www/html/domain.com/public;
     error_log /var/www/html/domain.com/error.log;
-    client_max_body_size 20m;
 
+    client_max_body_size 20m;
     include h5bp/xf2.conf;
     
     location ~ ^/(admin.php|install) {
