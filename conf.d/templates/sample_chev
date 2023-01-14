@@ -53,7 +53,7 @@ server {
       	  expires 365d;
 	      error_page 404 /content/images/system/default/404.png;
 	      break;
-    }
+      }
     return 403;
     }
 
