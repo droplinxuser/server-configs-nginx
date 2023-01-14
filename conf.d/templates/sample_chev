@@ -43,7 +43,7 @@ server {
     location ~* /composer\.json|composer\.lock|.gitignore$ { internal; }
 
     location ^~ /images/ {
-		location ~* \.(gif|jpg|jpe|jpeg|png|ico|webp|bmp|svg)$ {
+		  location ~* \.(gif|jpg|jpe|jpeg|png|ico|webp|bmp|svg)$ {
 	  	  gzip_static off;
 	  	  sendfile off;
 	  	  add_header Access-Control-Allow-Origin *;
