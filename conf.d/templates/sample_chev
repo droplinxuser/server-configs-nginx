@@ -1,0 +1,75 @@
+server {
+    listen      80;
+    listen [::]:80;
+    server_name domain.com www.domain.com;
+    return 301 https://domain.com$request_uri;
+}
+
+server {
+    listen      443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name www.domain.com;
+
+    include h5bp/tls/ssl_engine.conf;
+    include h5bp/tls/policy_balanced.conf;
+    include h5bp/tls/ocsp_stapling.conf;
+
+    ssl_certificate         /etc/letsencrypt/live/domain.com/fullchain.pem;
+    ssl_certificate_key     /etc/letsencrypt/live/domain.com/privkey.pem;
+    ssl_trusted_certificate /etc/letsencrypt/live/domain.com/chain.pem;
+    return 301 https://domain.com$request_uri;
+}
+
+server {
+    listen      443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name domain.com;
+
+    include h5bp/tls/ssl_engine.conf;
+    include h5bp/tls/policy_balanced.conf;
+    include h5bp/tls/ocsp_stapling.conf;
+
+    ssl_certificate         /etc/letsencrypt/live/domain.com/fullchain.pem;
+    ssl_certificate_key     /etc/letsencrypt/live/domain.com/privkey.pem;
+    ssl_trusted_certificate /etc/letsencrypt/live/domain.com/chain.pem;
+    
+    root      /var/www/html/domain.com/public;
+    error_log /var/www/html/domain.com/error.log;
+
+    ### Start Chev
+	client_max_body_size 101m;
+	location ~* /(app|content|lib)/.*\.(po|php|lock|sql)$  { internal; }
+	location ~* /composer\.json|composer\.lock|.gitignore$ { internal; }
+
+	location ^~ /images/ {
+		location ~* \.(gif|jpg|jpe|jpeg|png|ico|webp|bmp|svg)$ {
+	  	  gzip_static off;
+	  	  sendfile off;
+	  	  add_header Access-Control-Allow-Origin *;
+      	  add_header Cache-Control "public, must-revalidate, proxy-revalidate, immutable, stale-while-revalidate=86400, stale-if-error=604800";
+      	  access_log off;
+      	  log_not_found off;
+      	  expires 365d;
+	      error_page 404 /content/images/system/default/404.png;
+	      break;
+		}
+		return 403;
+	}
+
+	location / {
+		index index.php;
+		try_files $uri $uri/ /index.php$is_args$query_string;
+	}
+
+	location ~ ^/(dashboard) {
+		auth_basic "Private";
+		auth_basic_user_file /usr/local/nginx/conf/phc_htpasswd_phc2k16;
+		
+		try_files $uri $uri/ /index.php$is_args$query_string;
+		include /usr/local/nginx/conf/php.conf;
+	}
+    ### End Chev
+    
+    include h5bp/php.conf;
+    include h5bp/basic.conf;
+}
