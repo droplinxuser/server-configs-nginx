@@ -18,7 +18,7 @@ server {
     ssl_certificate_key     /etc/letsencrypt/live/cdn.domain.com/privkey.pem;
     ssl_trusted_certificate /etc/letsencrypt/live/cdn.domain.com/chain.pem;
     
-    root      /var/www/html/cdn.domain.com;
+    root      /var/www/html/cdn.domain.com/public;
     error_log /var/www/html/cdn.domain.com/error.log;
 
     client_max_body_size 1m;
