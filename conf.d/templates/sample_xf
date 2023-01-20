@@ -40,8 +40,8 @@ server {
     include h5bp/xf2.conf;
     
     location ~ ^/(admin.php|install) {
-        auth_basic "Private";
-        auth_basic_user_file htpasswd/xfadmin;
+        #auth_basic "Private";
+        #auth_basic_user_file htpasswd/xfadmin;
         include              h5bp/php.conf;
     }
     
