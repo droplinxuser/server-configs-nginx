@@ -9,6 +9,6 @@ map $request_uri $nocacheuri {
     ~^/lost-password 1;
     ~^/misc          1;
     ~^/register      1;
-    }
-    
+}
+
 fastcgi_cache_path /home/nginx_cache levels=1:2 keys_zone=fastcgicache:256m inactive=8h;
