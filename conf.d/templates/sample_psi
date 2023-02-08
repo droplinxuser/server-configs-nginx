@@ -35,7 +35,7 @@ server {
     
     location @backend {
       fastcgi_pass 127.0.0.1:3000;
-      include /etc/nginx-stock/fastcgi_params;
+      include /etc/nginx/fastcgi_params;
     }
 
     include h5bp/basic.conf;
