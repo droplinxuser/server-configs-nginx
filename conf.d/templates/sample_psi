@@ -18,7 +18,7 @@ server {
     ssl_certificate_key     /etc/letsencrypt/live/domain.com/privkey.pem;
     ssl_trusted_certificate /etc/letsencrypt/live/domain.com/chain.pem;
 
-    root      /var/www/psi_repo/public;
+    root      /var/www/psitransfer/public;
     error_log /var/www/psi_data/error.log;
     client_max_body_size 4g;
 
