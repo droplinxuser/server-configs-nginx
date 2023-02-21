@@ -41,4 +41,5 @@ server {
     }
 
     include h5bp/basic.conf;
+    error_page 500 502 503 504 /5xx.html;
 }
