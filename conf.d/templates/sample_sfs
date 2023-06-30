@@ -35,8 +35,8 @@ server {
     ssl_certificate_key     /etc/letsencrypt/live/domain.com/privkey.pem;
     ssl_trusted_certificate /etc/letsencrypt/live/domain.com/chain.pem;
     
-    root      /var/www/html/domain.com/public;
-    error_log /var/www/html/domain.com/error.log;
+    root      /var/www/domain.com/public;
+    error_log /var/www/domain.com/error.log;
     
     ### Start SFS
     client_max_body_size 101m;
