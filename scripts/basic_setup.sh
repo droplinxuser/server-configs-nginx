@@ -1,4 +1,6 @@
 #!/bin/bash
+#sudo ./basic_setup.sh -h ubuntu22.com -t Asia/Manila
+
 set -e
 
 if [[ $EUID -ne 0 ]]; then
