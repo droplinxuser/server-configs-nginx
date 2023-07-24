@@ -110,3 +110,6 @@ sysctl -e -p /etc/sysctl.conf
 # Increase Limits
 wget -O /etc/security/limits.conf https://github.com/droplinxuser/server-configs-nginx/raw/main/scripts/limits.conf
 cat /etc/security/limits.conf
+
+# All done!
+echo "✅ Ubuntu Basic Install Completed ✅"
