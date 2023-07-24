@@ -1,102 +1,110 @@
 #!/bin/bash
+set -e
 
-set -e # Exit on any error
-
-# Check if running as root
-if [[ $(id -u) -ne 0 ]]; then
-  echo "This script must be run as root."
-  exit 1
+if [[ $EUID -ne 0 ]]; then
+    echo "This script must be run as root."
+    exit 1
 fi
 
-# Check if it's a dedicated server
-is_dedicated_server=false
-if grep -qi 'physical' /sys/class/dmi/id/chassis_type; then
-  is_dedicated_server=true
-fi
+# Default values for options
+hostname_set=false
+timezone_set=false
 
-# Function to install and configure cpufrequtils if it's a dedicated server
-install_cpufrequtils() {
-  if $is_dedicated_server; then
-    apt update -y
-    apt install cpufrequtils -y --no-install-recommends
-    cpufreq-info
-    cpufreq-set -g performance
-    echo 'GOVERNOR="performance"' | tee /etc/default/cpufrequtils
-  fi
-}
+while [[ $# -gt 0 ]]; do
+    key="$1"
 
-# Function to create swap memory
-create_swap_memory() {
-  if [[ ! -f /swapfile ]]; then
-    ram_size=$(free -b | awk '/^Mem:/ {print $2}')
-    swap_size=$((ram_size < 32*1024**3 ? 2*ram_size : ram_size))
-
-    fallocate -l $swap_size /swapfile
-    chmod 600 /swapfile
-    mkswap /swapfile
-    swapon /swapfile
-
-    cp /etc/fstab /etc/fstab.bak
-    echo '/swapfile swap swap defaults 0 0' >> /etc/fstab
-  fi
-}
-
-# Parse command line options
-while getopts ":h:s:t:" opt; do
-  case $opt in
-    h)  # Set hostname
-      hostnamectl set-hostname "$OPTARG"
-      hostnamectl status
-      ;;
-    s)  # Create swap memory
-      create_swap_memory
-      ;;
-    t)  # Set time zone
-      timedatectl set-timezone "$OPTARG"
-      ;;
-    \?)
-      echo "Invalid option: -$OPTARG" >&2
-      exit 1
-      ;;
-    :)
-      echo "Option -$OPTARG requires an argument." >&2
-      exit 1
-      ;;
-  esac
+    case $key in
+        -h|--hostname)
+            hostname_set=true
+            hostname_value="$2"
+            shift # past argument
+            shift # past value
+            ;;
+        -t|--timezone)
+            timezone_set=true
+            timezone_value="$2"
+            shift # past argument
+            shift # past value
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
 done
 
-# Disable ufw
+# Check if hostname is set
+if ! $hostname_set; then
+    echo "Hostname is required. Use -h or --hostname to set it."
+    exit 1
+fi
+
+# Check if timezone is set
+if ! $timezone_set; then
+    echo "Timezone is required. Use -t or --timezone to set it."
+    exit 1
+fi
+
+# Disable UFW
 ufw disable
 
-# Update and upgrade system
-apt update -y
-apt upgrade -y
-apt autoremove --purge -y
-apt autoclean -y
-apt clean -y
-
-# Remove tuned and install required packages
-apt remove tuned -y
-apt install wget unzip nano zip software-properties-common rsync --no-install-recommends -y
-
-# Set DNS servers
+# Configure DNS servers
 mkdir -p /etc/systemd/resolved.conf.d/
 rm -f /etc/systemd/resolved.conf.d/*
 wget -O /etc/systemd/resolved.conf.d/dns_servers.conf https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/dns_servers.conf
 systemctl restart systemd-resolved
 resolvectl status
 
-# Set sysctl parameters and limits
+# Update Ubuntu
+apt update -y
+apt upgrade -y
+apt autoremove --purge -y
+apt autoclean -y
+apt clean -y
+
+# Install and configure cpufrequtils for dedicated servers
+if [ -d /sys/firmware/efi/efivars ]; then
+    apt remove tuned -y
+    apt install cpufrequtils -y --no-install-recommends
+    cpufreq-info
+    cpufreq-set -g performance
+    echo 'GOVERNOR="performance"' | tee /etc/default/cpufrequtils
+fi
+
+# Set Hostname
+hostnamectl set-hostname "$hostname_value"
+hostnamectl status
+
+# Install basic tools
+apt -y install wget unzip nano zip software-properties-common rsync --no-install-recommends
+
+# Set Timezone and Date
+timedatectl set-timezone "$timezone_value"
+
+# Create Swap
+if [ ! -f /swapfile ]; then
+    ram_size=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+    if [ $ram_size -lt 33554432 ]; then # RAM < 32 GB
+        swap_size=$((2*ram_size))
+    else
+        swap_size=$ram_size
+    fi
+
+    fallocate -l ${swap_size}K /swapfile
+    chmod 600 /swapfile
+    mkswap /swapfile
+    swapon /swapfile
+
+    cp /etc/fstab /etc/fstab.bak
+    echo '/swapfile swap swap defaults 0 0' | tee -a /etc/fstab
+fi
+
+# SysCTL Tweaks
 modprobe tcp_bbr
 modprobe tls
 wget -O /etc/sysctl.conf https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/sysctl.conf
 sysctl -e -p /etc/sysctl.conf
 
+# Increase Limits
 wget -O /etc/security/limits.conf https://github.com/droplinxuser/server-configs-nginx/raw/main/scripts/limits.conf
 cat /etc/security/limits.conf
-
-# Install and configure cpufrequtils
-install_cpufrequtils
-
-# Exit successfully
-exit 0
