@@ -16,5 +16,5 @@ map $request_uri $nocacheuri_ad_dr {
       /                     1;
     }
 
-fastcgi_cache_path /home/nginx_cache_ad_dr levels=1:2 keys_zone=fastcgicache_ad_dr:5120m inactive=30d;
+fastcgi_cache_path /home/nginx_cache_ad_dr levels=1:2 keys_zone=fastcgicache_ad_dr:5120m inactive=1d;
 ### End FastCGI Cache ####
