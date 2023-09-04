@@ -18,6 +18,8 @@ server {
     ssl_certificate         /etc/letsencrypt/live/domain.com/fullchain.pem;
     ssl_certificate_key     /etc/letsencrypt/live/domain.com/privkey.pem;
     ssl_trusted_certificate /etc/letsencrypt/live/domain.com/chain.pem;
+
+    #include h5bp/tls/auth_origin.conf;
     return 301 https://domain.com$request_uri;
 }
 
@@ -34,6 +36,8 @@ server {
     ssl_certificate         /etc/letsencrypt/live/domain.com/fullchain.pem;
     ssl_certificate_key     /etc/letsencrypt/live/domain.com/privkey.pem;
     ssl_trusted_certificate /etc/letsencrypt/live/domain.com/chain.pem;
+
+    #include h5bp/tls/auth_origin.conf;
     
     root      /var/www/domain.com/public;
     error_log /var/www/domain.com/error.log;
