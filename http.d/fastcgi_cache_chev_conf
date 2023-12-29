@@ -5,7 +5,6 @@ map $request_uri $nocacheuri_chev {
     ~^/connect              1;
     ~^/dashboard            1;
     ~^/delete               1;
-    ~^/delete_admin.php     1;
     ~^/install              1;
     ~^/json                 1;
     ~^/login                1;
