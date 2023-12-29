@@ -1,7 +1,6 @@
 ### Start FastCGI Cache ###
 map $request_uri $nocacheuri_chev {
     default                 0;
-    ~^/account              1;
     ~^/connect              1;
     ~^/dashboard            1;
     ~^/delete               1;
