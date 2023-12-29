@@ -1,5 +1,5 @@
 ### Start FastCGI Cache ###
-map $request_uri $nocacheuri_c {
+map $request_uri $nocacheuri_chev {
     default                 0;
     ~^/account              1;
     ~^/connect              1;
