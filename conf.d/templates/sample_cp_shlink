@@ -1,32 +1,14 @@
 server {
     listen      80;
     listen [::]:80;
-    server_name domain.com www.domain.com;
-    return 301 https://domain.com$request_uri;
+    server_name cp.domain.com;
+    return 301 https://cp.domain.com$request_uri;
 }
 
 server {
     listen      443 ssl;
     listen [::]:443 ssl;
-    server_name www.domain.com;
-    http2 on;
-
-    include h5bp/tls/ssl_engine.conf;
-    include h5bp/tls/policy_balanced.conf;
-    include h5bp/tls/ocsp_stapling.conf;
-
-    ssl_certificate         /etc/letsencrypt/live/domain.com/fullchain.pem;
-    ssl_certificate_key     /etc/letsencrypt/live/domain.com/privkey.pem;
-    ssl_trusted_certificate /etc/letsencrypt/live/domain.com/chain.pem;
-
-    #include h5bp/tls/auth_origin.conf;
-    return 301 https://domain.com$request_uri;
-}
-
-server {
-    listen      443 ssl;
-    listen [::]:443 ssl;
-    server_name domain.com;
+    server_name cp.domain.com;
     http2 on;
 
     include h5bp/tls/ssl_engine.conf;
@@ -39,9 +21,9 @@ server {
 
     #include h5bp/tls/auth_origin.conf;
     
-    root      /var/www/domain.com;
-    error_log /var/www/domain.com/error.log;
-    client_max_body_size 20m;
+    root      /var/www/cp.domain.com;
+    error_log /var/www/cp.domain.com/error.log;
+    client_max_body_size 1m;
     
     ### Shlink Start
     index index.html;
