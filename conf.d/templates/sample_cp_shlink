@@ -39,7 +39,7 @@ server {
 
     #include h5bp/tls/auth_origin.conf;
     
-    root      /var/www/domain.com/public;
+    root      /var/www/domain.com;
     error_log /var/www/domain.com/error.log;
     client_max_body_size 20m;
     
