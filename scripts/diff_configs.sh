@@ -1,24 +1,25 @@
 #!/bin/bash
 
-# Function to compare two files
-compare_files() {
-    local remote_url=$1
-    local local_path=$2
+# Function to compare remote and local configurations
+compare_configs() {
+    remote_url="$1"
+    local_file="$2"
 
-    # Download remote file to temporary location
-    tmp_remote_file=$(mktemp)
-    curl -sSL "$remote_url" -o "$tmp_remote_file"
+    # Download the remote file to a temporary location
+    temp_file=$(mktemp)
+    curl -sS "$remote_url" -o "$temp_file"
 
-    # Compare files and display only the differing lines with a blank line in between
-    diff_result=$(diff --unchanged-line-format= --old-line-format= --new-line-format="%L\n" "$tmp_remote_file" "$local_path")
-
-    if [ -n "$diff_result" ]; then
-        echo -e "Differences in $local_path:\n$diff_result"
+    # Compare the files and display the difference if any
+    if ! diff -q "$local_file" "$temp_file" > /dev/null; then
+        echo "Difference found in $local_file:"
+        diff -u "$local_file" "$temp_file"
+        echo
     fi
 
-    # Clean up temporary files
-    rm -f "$tmp_remote_file"
+    # Clean up the temporary file
+    rm "$temp_file"
 }
+
 
 # Compare configurations
 compare_files "https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/dns_servers.conf"        "/etc/systemd/resolved.conf.d/dns_servers.conf"
@@ -33,3 +34,9 @@ compare_files "https://raw.githubusercontent.com/droplinxuser/server-configs-ngi
 compare_files "https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/mariadb_server.cnf"      "/etc/mysql/mariadb.conf.d/50-server.cnf"
 compare_files "https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/www_82.conf"             "/etc/php/8.2/fpm/pool.d/www.conf"
 compare_files "https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/custom_dan.ini"          "/etc/php/8.2/fpm/conf.d/custom_dan.ini"
+
+
+# Print message if no differences found
+if [ -z "$(find /tmp -name 'diff*' -print -quit)" ]; then
+    echo "No differences found in configurations."
+fi
