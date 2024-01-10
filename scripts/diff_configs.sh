@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Compare two files
+# Function to compare two files
 compare_files() {
     local remote_url=$1
     local local_path=$2
@@ -9,10 +9,10 @@ compare_files() {
     tmp_remote_file=$(mktemp)
     curl -sSL "$remote_url" -o "$tmp_remote_file"
 
-    # Compare files and display the result
-    diff_result=$(diff -u "$tmp_remote_file" "$local_path")
+    # Compare files and display only the differing lines
+    diff_result=$(diff --unchanged-line-format= --old-line-format= --new-line-format="%L" "$tmp_remote_file" "$local_path")
 
-    if [ $? -eq 0 ]; then
+    if [ -z "$diff_result" ]; then
         echo "File $local_path is identical to the remote version."
     else
         echo -e "Differences in $local_path:\n$diff_result"
