@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# Compare two files
+compare_files() {
+    local remote_url=$1
+    local local_path=$2
+
+    # Download remote file to temporary location
+    tmp_remote_file=$(mktemp)
+    curl -sSL "$remote_url" -o "$tmp_remote_file"
+
+    # Compare files and display the result
+    diff_result=$(diff -u "$tmp_remote_file" "$local_path")
+
+    if [ $? -eq 0 ]; then
+        echo "File $local_path is identical to the remote version."
+    else
+        echo -e "Differences in $local_path:\n$diff_result"
+    fi
+
+    # Clean up temporary files
+    rm -f "$tmp_remote_file"
+}
+
+# Compare configurations
+compare_files "https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/dns_servers.conf"        "/etc/systemd/resolved.conf.d/dns_servers.conf"
+compare_files "https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/cpufrequtils"            "/etc/default/cpufrequtils"
+compare_files "https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/sysctl.conf"             "/etc/sysctl.conf"
+compare_files "https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/limits.conf"             "/etc/security/limits.conf"
+compare_files "https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/nginx_conf.sh"           "/root/nginx_conf.sh"
+compare_files "https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/limit_nofile.conf"       "/etc/systemd/system/nginx.service.d/limits.conf"
+compare_files "https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/etc_default_nginx"       "/etc/default/nginx"
+compare_files "https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/http.d/ppa_eilander_conf"        "/etc/nginx/http.d/ppa_eilander.conf"
+compare_files "https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/limit_nofile.conf"       "/etc/systemd/system/mariadb.service.d/limits.conf"
+compare_files "https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/mariadb_server.cnf"      "/etc/mysql/mariadb.conf.d/50-server.cnf"
+compare_files "https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/www_82.conf"             "/etc/php/8.2/fpm/pool.d/www.conf"
+compare_files "https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/custom_dan.ini"          "/etc/php/8.2/fpm/conf.d/custom_dan.ini"
