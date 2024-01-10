@@ -9,12 +9,10 @@ compare_files() {
     tmp_remote_file=$(mktemp)
     curl -sSL "$remote_url" -o "$tmp_remote_file"
 
-    # Compare files and display only the differing lines
-    diff_result=$(diff --unchanged-line-format= --old-line-format= --new-line-format="%L" "$tmp_remote_file" "$local_path")
+    # Compare files and display only the differing lines with a blank line in between
+    diff_result=$(diff --unchanged-line-format= --old-line-format= --new-line-format="%L\n" "$tmp_remote_file" "$local_path")
 
-    if [ -z "$diff_result" ]; then
-        echo "File $local_path is identical to the remote version."
-    else
+    if [ -n "$diff_result" ]; then
         echo -e "Differences in $local_path:\n$diff_result"
     fi
 
