@@ -25,6 +25,22 @@ compare_files() {
     else
         echo "Local file $local_path not found."
     fi
+
+    # Download remote file to temporary location
+    tmp_remote_file=$(mktemp)
+    curl -sSL "$remote_url" -o "$tmp_remote_file"
+
+    # Compare remote file with an empty local file
+    diff_result=$(diff --unchanged-line-format= --old-line-format= --new-line-format="%L" "$tmp_remote_file" /dev/null)
+
+    if [ -z "$diff_result" ]; then
+        echo "Remote file $remote_url is identical to the local version."
+    else
+        echo -e "Differences in remote file $remote_url:\n$diff_result"
+    fi
+
+    # Clean up temporary files
+    rm -f "$tmp_remote_file"
 }
 
 # Compare configurations for PHP 8.2, 8.1, 8.3
