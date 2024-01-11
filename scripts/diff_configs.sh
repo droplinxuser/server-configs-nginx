@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Function to compare two files
+# Function to compare two files and output only added (+) and removed (-) lines
 compare_files() {
     local remote_url=$1
     local local_path=$2
@@ -9,8 +9,8 @@ compare_files() {
     tmp_remote_file=$(mktemp)
     curl -sSL "$remote_url" -o "$tmp_remote_file"
 
-    # Compare files and display both local and remote changes
-    diff_result=$(diff -u "$local_path" "$tmp_remote_file")
+    # Compare files and display only added (+) and removed (-) lines
+    diff_result=$(diff -u "$local_path" "$tmp_remote_file" | grep -E '^[+-]')
 
     if [ -n "$diff_result" ]; then
         echo -e "Differences in $local_path:\n$diff_result"
