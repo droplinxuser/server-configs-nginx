@@ -45,7 +45,7 @@ declare -A config_files=(
 )
 
 # PHP Versions
-php_versions=(8.1 8.2 8.3)
+php_versions=(0 1 2 3)
 
 # Compare configurations
 for file_name in "${!config_files[@]}"; do
@@ -57,6 +57,6 @@ done
 
 # Compare PHP configurations for different versions
 for version in "${php_versions[@]}"; do
-    compare_files "https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/www_${version}.conf" "/etc/php/${version}/fpm/pool.d/www.conf"
-    compare_files "https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/custom_dan.ini" "/etc/php/${version}/fpm/conf.d/custom_dan.ini"
+    compare_files "https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/www_8${version}.conf" "/etc/php/8.${version}/fpm/pool.d/www.conf"
+    compare_files "https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/custom_dan.ini" "/etc/php/8.${version}/fpm/conf.d/custom_dan.ini"
 done
