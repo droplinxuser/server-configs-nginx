@@ -21,6 +21,7 @@ compare_files() {
     diff_result=$(diff -u "$local_path" "$tmp_remote_file" | grep -E '^[+-]')
 
     if [ -n "$diff_result" ]; then
+        printf "\n"
         printf "Differences in %s:\n%s\n" "$local_path" "$diff_result"
     fi
 
