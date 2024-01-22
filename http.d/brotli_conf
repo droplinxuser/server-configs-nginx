@@ -1,6 +1,6 @@
 brotli_static off;
 brotli on;
-brotli_comp_level 6; 
+brotli_comp_level 5; 
 brotli_min_length 50;
 brotli_types
 	text/richtext
