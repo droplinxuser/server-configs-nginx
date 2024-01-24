@@ -43,6 +43,8 @@ declare -A config_files=(
     ["nginx_additional"]="https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/http.d/ppa_eilander_conf /etc/nginx/http.d/ppa_eilander.conf"
     ["mariadb_service_limits"]="https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/limit_nofile.conf /etc/systemd/system/mariadb.service.d/limits.conf"
     ["mariadb_server"]="https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/mariadb_server.cnf /etc/mysql/mariadb.conf.d/50-server.cnf"
+    ["php74ini"]="https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/custom_dan.ini /etc/php/7.4/fpm/conf.d/custom_dan.ini"
+    ["php74fpm"]="https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/www_80.conf /etc/php/7.4/fpm/pool.d/www.conf"
 )
 
 # PHP Versions
