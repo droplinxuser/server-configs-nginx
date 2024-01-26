@@ -1,1 +1,32 @@
 include /etc/nginx/naxsi_rules/naxsi_core.rules;
+
+#include /etc/nginx/naxsi_rules/extras/dokuwiki.rules
+#include /etc/nginx/naxsi_rules/extras/drupal.rules
+#include /etc/nginx/naxsi_rules/extras/etherpad-lite.rules
+#include /etc/nginx/naxsi_rules/extras/iris.rules
+#include /etc/nginx/naxsi_rules/extras/rutorrent.rules
+#include /etc/nginx/naxsi_rules/extras/Scanner.rules
+#include /etc/nginx/naxsi_rules/extras/web.server.rules
+#include /etc/nginx/naxsi_rules/extras/wordpress-block
+#include /etc/nginx/naxsi_rules/extras/wordpress-minimal
+#include /etc/nginx/naxsi_rules/extras/wordpress.rules
+#include /etc/nginx/naxsi_rules/extras/zerobin.rules
+
+   #Enable naxsi
+   if ($naxsi_enable = 0) { set $naxsi_flag_enable 0; }
+   SecRulesEnabled;
+   if ($naxsi_enable = 0) { set $naxsi_flag_enable 0; }
+
+   #Enable learning mode
+   #LearningMode;
+
+   LibInjectionSql; #enable libinjection support for SQLI
+   LibInjectionXss; #enable libinjection support for XSS
+   #Define where blocked requests go
+   DeniedUrl "/50x.html";
+   #CheckRules, determining when naxsi needs to take action
+   CheckRule "$SQL >= 8" BLOCK;
+   CheckRule "$RFI >= 8" BLOCK;
+   CheckRule "$TRAVERSAL >= 4" BLOCK;
+   CheckRule "$EVADE >= 4" BLOCK;
+   CheckRule "$XSS >= 8" BLOCK;
