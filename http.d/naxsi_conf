@@ -12,21 +12,14 @@ include /etc/nginx/naxsi_rules/naxsi_core.rules;
 #include /etc/nginx/naxsi_rules/extras/wordpress.rules
 #include /etc/nginx/naxsi_rules/extras/zerobin.rules
 
-   #Enable naxsi
-   if ($naxsi_enable = 0) { set $naxsi_flag_enable 0; }
-   SecRulesEnabled;
-   if ($naxsi_enable = 0) { set $naxsi_flag_enable 0; }
+SecRulesEnabled;
+LearningMode;
+LibInjectionSql; 
+LibInjectionXss; 
 
-   #Enable learning mode
-   #LearningMode;
-
-   LibInjectionSql; #enable libinjection support for SQLI
-   LibInjectionXss; #enable libinjection support for XSS
-   #Define where blocked requests go
-   DeniedUrl "/50x.html";
-   #CheckRules, determining when naxsi needs to take action
-   CheckRule "$SQL >= 8" BLOCK;
-   CheckRule "$RFI >= 8" BLOCK;
-   CheckRule "$TRAVERSAL >= 4" BLOCK;
-   CheckRule "$EVADE >= 4" BLOCK;
-   CheckRule "$XSS >= 8" BLOCK;
+DeniedUrl "/503";
+CheckRule "$SQL >= 8" BLOCK;
+CheckRule "$RFI >= 8" BLOCK;
+CheckRule "$TRAVERSAL >= 4" BLOCK;
+CheckRule "$EVADE >= 4" BLOCK;
+CheckRule "$XSS >= 8" BLOCK;
