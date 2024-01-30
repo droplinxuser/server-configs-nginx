@@ -1,2 +1,2 @@
-include /etc/nginx/naxsi_rules/*.rules;
+include /etc/nginx/naxsi_rules/naxsi_core.rules;
 include /etc/nginx/naxsi_rules/*/*.rules;
