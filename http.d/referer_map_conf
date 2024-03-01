@@ -1,0 +1,11 @@
+map $http_referer $302_referer {
+    default                 "y";
+    "~site.com"             "n";
+    "~site.net"             "n";
+    ""                      "n";
+}
+
+map $request_method $302_method {
+    default                  "n";
+    GET        "${302_referer}y";
+}
