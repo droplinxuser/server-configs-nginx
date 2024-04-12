@@ -16,4 +16,4 @@ echo "" >> $CLOUDFLARE_FILE_PATH;
 echo "real_ip_header CF-Connecting-IP;" >> $CLOUDFLARE_FILE_PATH;
 
 #test configuration and reload nginx
-nginx -t && service nginx reload
+/usr/sbin/nginx -t && /usr/bin/systemctl reload nginx.service
