@@ -1,4 +1,4 @@
-brotli_static off;
+#brotli_static off;
 brotli on;
 brotli_comp_level 5; 
 brotli_min_length 50;
