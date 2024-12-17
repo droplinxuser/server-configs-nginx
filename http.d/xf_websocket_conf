@@ -6,7 +6,6 @@ map $http_upgrade $connection_upgrade {
 upstream xf_websocket {
     zone xf_ws_zone 256k;
     server 127.0.0.1:2020;
-
     keepalive_requests 131072;
     keepalive_timeout      1h;
     keepalive_time         1h;
