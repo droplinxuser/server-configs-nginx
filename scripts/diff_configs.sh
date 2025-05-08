@@ -41,6 +41,8 @@ declare -A config_files=(
     ["nginx_service_limits"]="https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/limit_nofile.conf /etc/systemd/system/nginx.service.d/limits.conf"
     ["nginx_default"]="https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/etc_default_nginx /etc/default/nginx"
     ["nginx_additional"]="https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/http.d/ppa_eilander_conf /etc/nginx/http.d/ppa_eilander.conf"
+    ["brotli_conf"]="https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/http.d/brotli_conf /etc/nginx/http.d/brotli.conf"
+    ["http_trim_filter_conf"]="https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/http.d/http_trim_filter_conf /etc/nginx/http.d/http_trim_filter.conf"
     ["mariadb_service_limits"]="https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/limit_nofile.conf /etc/systemd/system/mariadb.service.d/limits.conf"
     ["mariadb_server"]="https://raw.githubusercontent.com/droplinxuser/server-configs-nginx/main/scripts/mariadb_server.cnf /etc/mysql/mariadb.conf.d/50-server.cnf"
 )
