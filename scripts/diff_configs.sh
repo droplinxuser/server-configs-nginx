@@ -48,7 +48,7 @@ declare -A config_files=(
 )
 
 # PHP Versions
-php_versions=(2 3 4)
+php_versions=(3 4)
 
 # Compare configurations
 for file_name in "${!config_files[@]}"; do
