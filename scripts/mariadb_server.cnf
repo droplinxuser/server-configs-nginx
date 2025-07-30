@@ -35,9 +35,9 @@ innodb_io_capacity_max = 6000
 innodb_read_io_threads = 64
 innodb_write_io_threads = 64
 
-join_buffer_size = 2M
+join_buffer_size = 4M
 read_buffer_size = 2M
-sort_buffer_size = 2M
+sort_buffer_size = 4M
 
 tmp_table_size = 256M
 max_heap_table_size = 256M
