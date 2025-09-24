@@ -28,7 +28,7 @@ innodb_read_only_compressed = OFF
 innodb_lock_wait_timeout = 100
 innodb_flush_neighbors = 0
 
-innodb_io_capacity = 3000
+innodb_io_capacity     = 3000
 innodb_io_capacity_max = 6000
 
 innodb_read_io_threads  = 64
