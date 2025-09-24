@@ -8,7 +8,6 @@
 # this is only for the mysqld standalone daemon
 [mysqld]
 collation-server = utf8mb4_general_ci
-init-connect = 'SET NAMES utf8mb4'
 character-set-server = utf8mb4
 
 #performance_schema = on
@@ -20,9 +19,9 @@ open_files_limit = 524288
 max_connections = 400
 max_connect_errors = 524288
 
-innodb_log_buffer_size  = 2047M
-innodb_log_file_size    = 1024M
-innodb_buffer_pool_size = 4096M
+innodb_log_buffer_size  = 2G
+innodb_log_file_size    = 1G
+innodb_buffer_pool_size = 4G
 
 innodb_flush_log_at_trx_commit = 2
 innodb_read_only_compressed = OFF
@@ -44,6 +43,9 @@ max_heap_table_size = 256M
 
 table_definition_cache = 1024
 key_buffer_size = 32M
+
+aria_pagecache_buffer_size = 256M
+log_error = /var/log/mariadb/error.log
 
 #
 # * Basic Settings
