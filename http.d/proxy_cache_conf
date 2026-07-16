@@ -1,0 +1,14 @@
+### Proxy Cache ###
+map $request_uri $no_proxy_cacheuri {
+    default          0;
+    ~^/admin.php     1;
+    ~^/contact       1;
+    ~^/install       1;
+    ~^/login         1;
+    ~^/logout        1;
+    ~^/lost-password 1;
+    ~^/misc          1;
+    ~^/register      1;
+}
+
+proxy_cache_path /home/nginx_proxy_cache levels=1:2 keys_zone=proxycache:256m max_size=16g inactive=1h;
