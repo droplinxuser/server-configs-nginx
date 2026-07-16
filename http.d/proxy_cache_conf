@@ -1,0 +1,2 @@
+### Proxy Cache ####
+proxy_cache_path /home/proxy_cache levels=1:2 keys_zone=proxy_cache:128m max_size=512g inactive=182d use_temp_path=off;
