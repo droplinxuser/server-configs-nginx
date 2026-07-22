@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CLOUDFLARE_FILE_PATH=/etc/nginx/http.d/cloudflare.conf
+CLOUDFLARE_FILE_PATH=/etc/angie/http.d/cloudflare.conf
 
 echo "# Include this file in your vhost" > $CLOUDFLARE_FILE_PATH;
 echo "" >> $CLOUDFLARE_FILE_PATH;
@@ -15,5 +15,5 @@ done
 echo "" >> $CLOUDFLARE_FILE_PATH;
 echo "real_ip_header CF-Connecting-IP;" >> $CLOUDFLARE_FILE_PATH;
 
-#test configuration and reload nginx
-/usr/sbin/nginx -t && /usr/bin/systemctl reload nginx.service
+#test configuration and reload angie
+/usr/sbin/angie -t && /usr/bin/systemctl reload angie.service
