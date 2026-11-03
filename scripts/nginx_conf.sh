@@ -1,55 +1,54 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #===============================================================================
-# nginx_conf.sh — Angie/Nginx Config Deployer
-# Downloads the latest configs from the droplinxuser/server-configs-nginx repo,
-# rsyncs them into /etc/angie/, tests the config, and gracefully reloads.
-# Safe to re-run — fully idempotent.
+# nginx_conf.sh - Angie/Nginx config deployer
+#
+# Downloads (or consumes CONFIG_SOURCE_DIR) the droplinxuser/server-configs-nginx
+# tree, syncs it into /etc/angie, creates the shared certificate and cache/log
+# directories, tests the configuration and reloads Angie.
+#
+# The sync is intentionally owner-safe: source ownership is never copied into
+# /etc, so a non-root account that owns a Git checkout cannot modify live web
+# server configuration.
 #===============================================================================
-set -e
+set -Eeuo pipefail
 
 REPO_BASE=${CONFIG_REPO_URL:-https://github.com/droplinxuser/server-configs-nginx}
 REPO_REF=${CONFIG_REPO_REF:-main}
 REPO_URL="${REPO_BASE}/archive/${REPO_REF}.zip"
 TARGET_DIR="/etc/angie"
+LOG_DIR="/var/www/logs/angie"
+CACHE_DIRS=(/home/nginx_cache /home/nginx_cache_chev /home/xf_proxy_cache
+            /home/proxy_cache /home/proxy_cdn)
 
 echo "==> Deploying Angie configs from server-configs-nginx..."
 
-if [[ -n ${CONFIG_SOURCE_DIR:-} ]]; then
-    # setup.sh downloads/extracts the repo once and passes the tree here.
+if [[ -n ${CONFIG_SOURCE_DIR:-} && -d ${CONFIG_SOURCE_DIR} ]]; then
     WORK_DIR=$CONFIG_SOURCE_DIR
     echo "    Using local config source: $WORK_DIR"
 else
     WORK_DIR="$HOME/server-configs-nginx-main"
     ZIP_FILE="$HOME/main.zip"
 
-    #-------------------------------------------------------------------------------
-    # Clean up any previous extraction
-    #-------------------------------------------------------------------------------
-    rm -rf "$WORK_DIR" "$ZIP_FILE" ${ZIP_FILE%.*}*
-
-    #-------------------------------------------------------------------------------
-    # Download and extract the latest configs
-    #-------------------------------------------------------------------------------
+    rm -rf "$WORK_DIR" "$ZIP_FILE" "${ZIP_FILE%.*}"*
     echo "    Downloading $REPO_URL ..."
     wget -q "$REPO_URL" -O "$ZIP_FILE"
-
     echo "    Extracting..."
     unzip -q "$ZIP_FILE" -d "$HOME"
 fi
 
-#-------------------------------------------------------------------------------
-# Sync configs into /etc/angie/
-# rsync -a (archive) preserves permissions and only adds/updates files.
-# It does NOT delete existing files in /etc/angie/ that aren't in the source.
-#-------------------------------------------------------------------------------
 echo "    Syncing to $TARGET_DIR ..."
-rsync -a --exclude='*.md' --exclude='*.txt' --exclude='.git*' \
+# --no-owner/--no-group + --chmod prevents a checkout owned by uid 1000 from
+# leaving writable files in /etc/angie. Never copy the sample private key.
+rsync -a --no-owner --no-group --chmod=D755,F644 \
+    --exclude='*.md' --exclude='*.txt' --exclude='.git*' \
+    --exclude='.github/' --exclude='test/' --exclude='.editorconfig' \
+    --exclude='h5bp/tls/private.key' --exclude='h5bp/tls/certificate.pem' \
     "$WORK_DIR"/ "$TARGET_DIR"/
 mkdir -p "$TARGET_DIR/snippets"
 
-# Remove setup.sh-managed overrides and old pre-refactor filenames that would
-# duplicate the cache zones, log_format and limiter variables now provided by
-# this repository.
+# Remove sample keys and old setup.sh-managed overrides that duplicated the
+# cache zones, log_format and limiter variables now provided by this tree.
+rm -rf "$TARGET_DIR/test"
 rm -f "$TARGET_DIR/http.d/98_setup_cache.conf" \
       "$TARGET_DIR/http.d/99_setup_overrides.conf" \
       "$TARGET_DIR/http.d/limit_req_whitelist.conf" \
@@ -61,15 +60,51 @@ rm -f "$TARGET_DIR/http.d/98_setup_cache.conf" \
       "$TARGET_DIR/http.d/proxy_cache_conf" \
       "$TARGET_DIR/http.d/referer_map_conf" \
       "$TARGET_DIR/h5bp/limit_req/_high_conf" \
-      "$TARGET_DIR/h5bp/limit_req/_medium_conf"
+      "$TARGET_DIR/h5bp/limit_req/_medium_conf" \
+      "$TARGET_DIR/h5bp/tls/private.key" \
+      "$TARGET_DIR/h5bp/tls/certificate.pem"
+
+# Normalise ownership/modes for everything except operator certificates and
+# stream configs. scripts/*.sh stay executable for the Cloudflare cron job.
+find "$TARGET_DIR" -path "$TARGET_DIR/ssl" -prune -o \
+     -path "$TARGET_DIR/stream.d" -prune -o \
+     -exec chown root:root {} + 2>/dev/null || true
+find "$TARGET_DIR" -path "$TARGET_DIR/ssl" -prune -o \
+     -path "$TARGET_DIR/stream.d" -prune -o \
+     -type d -exec chmod 755 {} + 2>/dev/null || true
+find "$TARGET_DIR" -path "$TARGET_DIR/ssl" -prune -o \
+     -path "$TARGET_DIR/stream.d" -prune -o \
+     -type f -exec chmod 644 {} + 2>/dev/null || true
+chmod 755 "$TARGET_DIR"/scripts/*.sh 2>/dev/null || true
+
+# The catch-all 443 server needs a unique local certificate. The repository
+# used to ship a shared sample key; generate one per host instead.
+if [[ ! -s "$TARGET_DIR/ssl/default/fullchain.pem" \
+      || ! -s "$TARGET_DIR/ssl/default/privkey.pem" ]]; then
+    echo "    Generating the default self-signed certificate..."
+    install -d -m 700 "$TARGET_DIR/ssl/default"
+    openssl req -x509 -nodes -newkey rsa:2048 -days 397 \
+        -subj "/CN=$(hostname -f 2>/dev/null || hostname)" \
+        -addext "subjectAltName=DNS:$(hostname -f 2>/dev/null || hostname)" \
+        -keyout "$TARGET_DIR/ssl/default/privkey.pem" \
+        -out "$TARGET_DIR/ssl/default/fullchain.pem" >/dev/null 2>&1
+    chmod 600 "$TARGET_DIR/ssl/default/privkey.pem"
+    chmod 644 "$TARGET_DIR/ssl/default/fullchain.pem"
+fi
 
 #-------------------------------------------------------------------------------
-# Create cache directories used by http.d/*.conf.  The main angie.conf runs
-# workers as www-data; adjust the owner if your user directive differs.
+# Central log and cache directories. All service logs live under
+# /var/www/logs so they can be collected as one tree.
 #-------------------------------------------------------------------------------
-echo "    Creating cache directories..."
-for cache_dir in /home/nginx_cache /home/nginx_cache_chev /home/xf_proxy_cache \
-                  /home/proxy_cache /home/proxy_cdn; do
+echo "    Creating log and cache directories..."
+install -d -m 750 -o www-data -g www-data "$LOG_DIR"
+for log in error.log; do
+    [[ -e "$LOG_DIR/$log" ]] || : > "$LOG_DIR/$log"
+    chown www-data:www-data "$LOG_DIR/$log" 2>/dev/null || true
+    chmod 640 "$LOG_DIR/$log"
+done
+
+for cache_dir in "${CACHE_DIRS[@]}"; do
     mkdir -p "$cache_dir"
     chown www-data:www-data "$cache_dir" 2>/dev/null || true
     chmod 750 "$cache_dir"
@@ -80,8 +115,11 @@ done
 #-------------------------------------------------------------------------------
 echo "    Testing Angie configuration..."
 if /usr/sbin/angie -t; then
-    echo "    Configuration OK — reloading Angie..."
+    echo "    Configuration OK - reloading Angie..."
     /usr/bin/systemctl reload angie.service
+    # Angie's master opens log files as root. Normalise pre-existing logs for
+    # the UMask=0027 drop-in; new files are already 0640.
+    find "$LOG_DIR" -type f -name '*.log' -exec chmod 640 {} + 2>/dev/null || true
     echo "    Done."
 else
     echo "    ERROR: Angie configuration test failed. Reload aborted." >&2

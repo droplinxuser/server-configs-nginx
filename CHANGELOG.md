@@ -1,3 +1,25 @@
+### Local fork changes (November 03, 2026, 1.6.0)
+
+* All Angie, PHP-FPM, Node.js and Elasticsearch logs now live under
+  `/var/www/logs/<service>/`; vhost templates and `angie.conf` use the new
+  paths. `scripts/www_*.conf` use a single `/var/www/logs/php/php-fpm.log`.
+* FastCGI now uses the Unix socket `/run/php/php-fpm.sock`; the `local_php`
+  upstream was updated accordingly. Live test: ~+10% PHP throughput and lower
+  p99 than loopback TCP.
+* `scripts/nginx_conf.sh` no longer copies source ownership into `/etc/angie`
+  (root-owned, 0644/0755), excludes the shared sample private key and test
+  tree, generates a unique default self-signed certificate per host, and
+  normalises log modes to 0640.
+* `scripts/limit_nofile.conf` and `scripts/php-fpm-limits.conf` set
+  `UMask=0027`.
+* `custom_dan.ini`: central `error_log`, `display_errors=Off`, secure session
+  cookies, and only `show_source,phpinfo` disabled (keeps
+  `system`/`passthru`/`exec` for Chevereto/Lychee/WordPress media plugins).
+* Smaller large-site buffers: `client_header_buffer_size 16k`,
+  `large_client_header_buffers 4 32k`, `gzip_buffers 32 8k`.
+* Added `worker_shutdown_timeout 30s` for clean reloads/upgrades.
+* Templates with fixed log names now use per-domain log names.
+
 ### Local fork changes (November 03, 2026)
 
 * Angie/Nginx runtime tuning validated on Ubuntu 26.04:
