@@ -1,3 +1,12 @@
+### Local fork changes (November 03, 2026, 1.6.1)
+
+* Angie access logging is disabled everywhere; only `error_log` is written.
+  Removed per-vhost `access_log` directives from all templates and the stress
+  site. This removes the largest source of disk I/O and log volume on busy
+  sites.
+* Dynamic PHP responses no longer inherit static `expires`/`Cache-Control`
+  headers; every PHP location sets `expires off`.
+
 ### Local fork changes (November 03, 2026, 1.6.0)
 
 * All Angie, PHP-FPM, Node.js and Elasticsearch logs now live under
