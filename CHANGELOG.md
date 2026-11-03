@@ -1,3 +1,16 @@
+### Local fork changes (November 03, 2026, 1.6.4)
+
+* Added `h5bp/wordpress_cache.conf`: a cookie-aware guest full-page cache.
+  Anonymous GET/HEAD responses are cached for 60 s; logged-in users, POSTs,
+  `wp-admin`, `wp-login`, `wp-cron` and `wp-json` bypass the cache. The
+  `sample_wordpress.conf` template includes it.
+  Live 16 vCPU VPS measurement: 242 req/s uncached -> 9,972 req/s cached
+  (p50 4.4 ms, p99 8.3 ms); a 3-minute soak held 165,855 req/s on the cached
+  stress page with no socket errors.
+* Removed the unused `scripts/install_angie.sh`. Angie package installation
+  belongs to `ubuntu-setup-script/setup.sh`; this repository owns Angie/Nginx
+  and PHP-FPM configuration plus the config deployer.
+
 ### Local fork changes (November 03, 2026, 1.6.3)
 
 * `scripts/cloudflare.sh` is now safe to run unattended: both Cloudflare IP
