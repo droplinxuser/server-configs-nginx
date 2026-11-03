@@ -7,9 +7,16 @@ your server improve the website's performance and security, while also
 ensuring that resources are served with the correct content-type and are
 accessible, if needed, even cross-domain.
 
+## Scope
+
+This repository intentionally contains only **Angie/Nginx and PHP-FPM**
+configuration. Server/system/MariaDB configuration, the legacy basic-setup
+script and config-diff tooling live in
+[`droplinxuser/ubuntu-setup-script`](https://github.com/droplinxuser/ubuntu-setup-script).
+
 ## Local fork changes
 
-This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.4.0:
+This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.5.0:
 
 - `worker_connections` is 65k (about 1M total on a 16-core host) instead of
   300k, cutting worker connection-slot memory from ~2 GB to ~0.5 GB.
@@ -43,6 +50,9 @@ This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.4.0:
   `h5bp/tls/http3.conf` because it is a server-block snippet, not a vhost.
 - `conf.d/templates/example.com.conf` uses the embedded self-signed
   certificate by default; replace it with your real certificate.
+- Moved out of this repository to `ubuntu-setup-script`:
+  `basic_setup.sh`, `diff_configs.sh`, `cpufrequtils`, `dns_servers.conf`,
+  `limits.conf`, `sysctl.conf`, and `mariadb_server.cnf`.
 
 ## Getting Started
 
