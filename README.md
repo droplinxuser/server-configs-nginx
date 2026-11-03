@@ -7,6 +7,35 @@ your server improve the website's performance and security, while also
 ensuring that resources are served with the correct content-type and are
 accessible, if needed, even cross-domain.
 
+## Local fork changes
+
+This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.4.0:
+
+- `worker_connections` is 65k (about 1M total on a 16-core host) instead of
+  300k, cutting worker connection-slot memory from ~2 GB to ~0.5 GB.
+- `resolver` uses the systemd-resolved stub `127.0.0.53` first, with public
+  fallbacks. The old `127.0.0.1` first entry made dynamic lookups wait for a
+  timeout on Ubuntu.
+- The global 16 MB/s `limit_rate` cap is disabled; use per-vhost limits.
+- FastCGI upstream keepalive is 64 (was 3).
+- `h5bp/php*.conf` uses 128×32k FastCGI buffers instead of 512×32k, and fixes
+  `PATH_TRANSLATED` so PHP-FPM does not return “Access denied”.
+- TLS session tickets and 0-RTT early data are disabled by default.
+- `snippets/fastcgi-php.conf` is included (Angie does not ship it).
+- The safe optional configs are enabled as real `.conf` files: FastCGI cache,
+  XenForo proxy/WebSocket/cache, proxy cache, per-IP rate limiting and the
+  referer map. Module-dependent snippets (Brotli, zstd, Naxsi, ngx_waf, trim,
+  sysguard) remain disabled.
+- Rate limiting exempts loopback, uses 100 GET/s and 30 POST/HEAD/s for
+  external clients, and returns `429` instead of a connection-dropping `444`.
+- `gzip_static on` is enabled; pre-compressed assets are served when present.
+- `scripts/nginx_conf.sh` creates the `/home/*_cache` directories owned by
+  `www-data` before testing/reloading.
+- Template defects were repaired (duplicate SSL/proxy includes, `;;`, missing
+  log directories, renamed proxy include). HTTP/3 moved to
+  `h5bp/tls/http3.conf` because it is a server-block snippet, not a vhost.
+- `conf.d/templates/example.com.conf` uses the embedded self-signed
+  certificate by default; replace it with your real certificate.
 
 ## Getting Started
 

@@ -40,6 +40,25 @@ rm -rf "$WORK_DIR"/{*.md,*.txt,.git*}
 #-------------------------------------------------------------------------------
 echo "    Syncing to $TARGET_DIR ..."
 rsync -a "$WORK_DIR"/ "$TARGET_DIR"/
+mkdir -p "$TARGET_DIR/snippets"
+
+# Remove setup.sh-managed overrides that would duplicate the cache zones,
+# log_format and limiter variables now provided by this repository.
+rm -f "$TARGET_DIR/http.d/98_setup_cache.conf" \
+      "$TARGET_DIR/http.d/99_setup_overrides.conf" \
+      "$TARGET_DIR/http.d/limit_req_whitelist.conf"
+
+#-------------------------------------------------------------------------------
+# Create cache directories used by http.d/*.conf.  The main angie.conf runs
+# workers as www-data; adjust the owner if your user directive differs.
+#-------------------------------------------------------------------------------
+echo "    Creating cache directories..."
+for cache_dir in /home/nginx_cache /home/nginx_cache_chev /home/xf_proxy_cache \
+                  /home/proxy_cache /home/proxy_cdn; do
+    mkdir -p "$cache_dir"
+    chown www-data:www-data "$cache_dir" 2>/dev/null || true
+    chmod 750 "$cache_dir"
+done
 
 #-------------------------------------------------------------------------------
 # Test the config and reload Angie if valid
