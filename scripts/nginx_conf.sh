@@ -7,31 +7,35 @@
 #===============================================================================
 set -e
 
-REPO_URL="https://github.com/droplinxuser/server-configs-nginx/archive/refs/heads/main.zip"
-WORK_DIR="$HOME/server-configs-nginx-main"
-ZIP_FILE="$HOME/main.zip"
+REPO_BASE=${CONFIG_REPO_URL:-https://github.com/droplinxuser/server-configs-nginx}
+REPO_REF=${CONFIG_REPO_REF:-main}
+REPO_URL="${REPO_BASE}/archive/${REPO_REF}.zip"
 TARGET_DIR="/etc/angie"
 
 echo "==> Deploying Angie configs from server-configs-nginx..."
 
-#-------------------------------------------------------------------------------
-# Clean up any previous extraction
-#-------------------------------------------------------------------------------
-rm -rf "$WORK_DIR" "$ZIP_FILE" ${ZIP_FILE%.*}*
+if [[ -n ${CONFIG_SOURCE_DIR:-} ]]; then
+    # setup.sh downloads/extracts the repo once and passes the tree here.
+    WORK_DIR=$CONFIG_SOURCE_DIR
+    echo "    Using local config source: $WORK_DIR"
+else
+    WORK_DIR="$HOME/server-configs-nginx-main"
+    ZIP_FILE="$HOME/main.zip"
 
-#-------------------------------------------------------------------------------
-# Download and extract the latest configs
-#-------------------------------------------------------------------------------
-echo "    Downloading $REPO_URL ..."
-wget -q "$REPO_URL" -O "$ZIP_FILE"
+    #-------------------------------------------------------------------------------
+    # Clean up any previous extraction
+    #-------------------------------------------------------------------------------
+    rm -rf "$WORK_DIR" "$ZIP_FILE" ${ZIP_FILE%.*}*
 
-echo "    Extracting..."
-unzip -q "$ZIP_FILE" -d "$HOME"
+    #-------------------------------------------------------------------------------
+    # Download and extract the latest configs
+    #-------------------------------------------------------------------------------
+    echo "    Downloading $REPO_URL ..."
+    wget -q "$REPO_URL" -O "$ZIP_FILE"
 
-#-------------------------------------------------------------------------------
-# Remove non-config files (READMEs, git metadata, etc.)
-#-------------------------------------------------------------------------------
-rm -rf "$WORK_DIR"/{*.md,*.txt,.git*}
+    echo "    Extracting..."
+    unzip -q "$ZIP_FILE" -d "$HOME"
+fi
 
 #-------------------------------------------------------------------------------
 # Sync configs into /etc/angie/
@@ -39,14 +43,25 @@ rm -rf "$WORK_DIR"/{*.md,*.txt,.git*}
 # It does NOT delete existing files in /etc/angie/ that aren't in the source.
 #-------------------------------------------------------------------------------
 echo "    Syncing to $TARGET_DIR ..."
-rsync -a "$WORK_DIR"/ "$TARGET_DIR"/
+rsync -a --exclude='*.md' --exclude='*.txt' --exclude='.git*' \
+    "$WORK_DIR"/ "$TARGET_DIR"/
 mkdir -p "$TARGET_DIR/snippets"
 
-# Remove setup.sh-managed overrides that would duplicate the cache zones,
-# log_format and limiter variables now provided by this repository.
+# Remove setup.sh-managed overrides and old pre-refactor filenames that would
+# duplicate the cache zones, log_format and limiter variables now provided by
+# this repository.
 rm -f "$TARGET_DIR/http.d/98_setup_cache.conf" \
       "$TARGET_DIR/http.d/99_setup_overrides.conf" \
-      "$TARGET_DIR/http.d/limit_req_whitelist.conf"
+      "$TARGET_DIR/http.d/limit_req_whitelist.conf" \
+      "$TARGET_DIR/http.d/fastcgi_cache_conf" \
+      "$TARGET_DIR/http.d/fastcgi_cache_chev_conf" \
+      "$TARGET_DIR/http.d/xf_proxy_cache_conf" \
+      "$TARGET_DIR/http.d/xf_websocket_conf" \
+      "$TARGET_DIR/http.d/limit_req_conf" \
+      "$TARGET_DIR/http.d/proxy_cache_conf" \
+      "$TARGET_DIR/http.d/referer_map_conf" \
+      "$TARGET_DIR/h5bp/limit_req/_high_conf" \
+      "$TARGET_DIR/h5bp/limit_req/_medium_conf"
 
 #-------------------------------------------------------------------------------
 # Create cache directories used by http.d/*.conf.  The main angie.conf runs

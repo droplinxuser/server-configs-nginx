@@ -30,7 +30,14 @@ This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.4.0:
   external clients, and returns `429` instead of a connection-dropping `444`.
 - `gzip_static on` is enabled; pre-compressed assets are served when present.
 - `scripts/nginx_conf.sh` creates the `/home/*_cache` directories owned by
-  `www-data` before testing/reloading.
+  `www-data`, removes old setup.sh/pre-refactor filenames, tests and reloads.
+  Set `CONFIG_SOURCE_DIR=/path` to deploy a local checkout; `CONFIG_REPO_REF`
+  selects a branch or tag.
+- PHP-FPM pool templates (`scripts/www_8*.conf`), `scripts/custom_dan.ini` and
+  `scripts/php-fpm-limits.conf` are the source of truth used by `setup.sh`.
+  Add `scripts/www_<ver>.conf` when adding a new PHP version.
+- Added `sample_php.conf` (generic/Lychee front controller) and
+  `sample_node.conf` (Node proxy + WebSocket) templates.
 - Template defects were repaired (duplicate SSL/proxy includes, `;;`, missing
   log directories, renamed proxy include). HTTP/3 moved to
   `h5bp/tls/http3.conf` because it is a server-block snippet, not a vhost.
