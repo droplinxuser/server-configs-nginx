@@ -26,6 +26,10 @@
 * Repaired template defects (duplicate includes, `;;`, missing log dirs,
   renamed proxy include). Moved HTTP/3 to `h5bp/tls/http3.conf` as a snippet.
 * `example.com.conf` now uses the embedded self-signed certificate by default.
+* Moved non-Angie/Nginx/PHP-FPM files to `ubuntu-setup-script`:
+  `basic_setup.sh`, `diff_configs.sh`, `cpufrequtils`, `dns_servers.conf`,
+  `limits.conf`, `sysctl.conf`, and `mariadb_server.cnf`.
+  This repository now contains only Angie/Nginx and PHP-FPM configuration.
 
 ### 5.0.1 (July 23, 2023)
 
