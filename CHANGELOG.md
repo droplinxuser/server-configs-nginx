@@ -1,3 +1,13 @@
+### Local fork changes (November 03, 2026, 1.6.3)
+
+* `scripts/cloudflare.sh` is now safe to run unattended: both Cloudflare IP
+  lists are validated, the include is generated in a temporary file, the old
+  file is kept if a download fails, and Angie is reloaded only after
+  `angie -t` succeeds (`set -Eeuo pipefail`, curl retries/timeouts).
+* Removed the unused `scripts/install_angie.sh`. Angie package installation
+  belongs to `ubuntu-setup-script/setup.sh`; this repository owns Angie/Nginx
+  and PHP-FPM configuration plus the config deployer.
+
 ### Local fork changes (November 03, 2026, 1.6.1)
 
 * Angie access logging is disabled everywhere; only `error_log` is written.

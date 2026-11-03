@@ -16,7 +16,7 @@ script and config-diff tooling live in
 
 ## Local fork changes
 
-This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.5.0:
+This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.6.3:
 
 - `worker_connections` is 65k (about 1M total on a 16-core host) instead of
   300k, cutting worker connection-slot memory from ~2 GB to ~0.5 GB.
@@ -40,6 +40,12 @@ This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.5.0:
   `www-data`, removes old setup.sh/pre-refactor filenames, tests and reloads.
   Set `CONFIG_SOURCE_DIR=/path` to deploy a local checkout; `CONFIG_REPO_REF`
   selects a branch or tag.
+- `scripts/cloudflare.sh` now validates both Cloudflare IP lists, writes
+  `/etc/angie/http.d/cloudflare.conf` atomically, and only reloads after
+  `angie -t` passes. A failed download leaves the previous file intact.
+- Removed the unused `scripts/install_angie.sh`; package installation is owned
+  by `setup.sh`, so this repository stays limited to configuration and config
+  deployment.
 - PHP-FPM pool templates (`scripts/www_8*.conf`), `scripts/custom_dan.ini` and
   `scripts/php-fpm-limits.conf` are the source of truth used by `setup.sh`.
   Add `scripts/www_<ver>.conf` when adding a new PHP version.
