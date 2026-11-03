@@ -16,7 +16,13 @@
   status, warning log level.
 * `gzip_static on` enabled.
 * `scripts/nginx_conf.sh` creates cache directories under `/home` owned by
-  `www-data`.
+  `www-data`, removes old setup.sh/pre-refactor filenames, and supports a
+  local `CONFIG_SOURCE_DIR` checkout.
+* PHP-FPM/php.ini configuration now lives here and is used by setup.sh:
+  `scripts/www_81.conf` … `scripts/www_85.conf`, `scripts/custom_dan.ini`
+  and `scripts/php-fpm-limits.conf`.
+* Added `sample_php.conf` and `sample_node.conf` vhost templates so setup.sh
+  contains no inline Angie config.
 * Repaired template defects (duplicate includes, `;;`, missing log dirs,
   renamed proxy include). Moved HTTP/3 to `h5bp/tls/http3.conf` as a snippet.
 * `example.com.conf` now uses the embedded self-signed certificate by default.
