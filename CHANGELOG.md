@@ -1,3 +1,26 @@
+### Local fork changes (November 03, 2026)
+
+* Angie/Nginx runtime tuning validated on Ubuntu 26.04:
+  * `worker_connections` 65535 (was 300000)
+  * `resolver 127.0.0.53 1.1.1.1 8.8.8.8` (systemd-resolved first)
+  * global `limit_rate` disabled; per-vhost limits remain
+  * FastCGI keepalive 64 (was 3)
+* PHP FastCGI: 128×32k buffers, 2m busy buffer, 16m temp file limits,
+  and correct `PATH_TRANSLATED`.
+* TLS: session tickets and 0-RTT early data disabled by default.
+* Added `snippets/fastcgi-php.conf` for PHP vhosts.
+* Enabled the safe optional configs as `.conf` files: FastCGI cache,
+  XenForo proxy/WebSocket/cache, proxy cache, per-IP rate limiting, referer
+  map. Module-dependent snippets remain disabled.
+* Rate limiting: loopback exempt, 100 GET/s and 30 POST/HEAD/s, `429`
+  status, warning log level.
+* `gzip_static on` enabled.
+* `scripts/nginx_conf.sh` creates cache directories under `/home` owned by
+  `www-data`.
+* Repaired template defects (duplicate includes, `;;`, missing log dirs,
+  renamed proxy include). Moved HTTP/3 to `h5bp/tls/http3.conf` as a snippet.
+* `example.com.conf` now uses the embedded self-signed certificate by default.
+
 ### 5.0.1 (July 23, 2023)
 
 * Set `ssl_prefer_server_ciphers` to `off`
