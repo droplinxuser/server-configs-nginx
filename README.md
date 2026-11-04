@@ -16,6 +16,37 @@ legacy basic-setup script and config-diff tooling live in
 `scripts/nginx_conf.sh` only syncs this Angie tree into `/etc/angie`; it does
 not own PHP-FPM config anymore.
 
+## Angie built-in ACME
+
+Angie packages include `http_acme_module`. To replace Certbot:
+
+1. Enable a client in the `http` context (the repository ships
+   `http.d/letsencrypt_conf` as a disabled sample; rename it to
+   `http.d/letsencrypt.conf` or create that file):
+   ```nginx
+   acme_client letsencrypt https://acme-v02.api.letsencrypt.org/directory;
+   ```
+2. Keep the resolver pointing at a working stub/recursor. On Ubuntu with
+   systemd-resolved use `resolver 127.0.0.53 1.1.1.1 8.8.8.8 valid=1d;`.
+3. Add an HTTP :80 server for the names so HTTP-01 challenges are reachable:
+   ```nginx
+   server {
+       listen 80;
+       listen [::]:80;
+       server_name example.com www.example.com;
+       acme letsencrypt;
+       location / { return 301 https://$host$request_uri; }
+   }
+   ```
+4. Use the ACME variables in the HTTPS server:
+   ```nginx
+   acme letsencrypt;
+   ssl_certificate     $acme_cert_letsencrypt;
+   ssl_certificate_key $acme_cert_key_letsencrypt;
+   ```
+5. Test and reload with `angie -t && systemctl reload angie`. Angie stores and
+   renews the certificate under `/var/lib/angie/acme/letsencrypt/`.
+
 ## Local fork changes
 
 This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.6.10:
