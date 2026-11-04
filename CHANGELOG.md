@@ -12,6 +12,12 @@
 * `nginx_conf.sh` creates `custom.d/`, runs `systemctl daemon-reload` before
   reloading, and no longer emits ShellCheck SC2043. `auto_tune.sh` keeps
   `fastcgi_busy_buffers_size` below the total FastCGI buffer pool.
+* Replaced the three WordPress cache `if` blocks with a chained `map` in the
+  new `http.d/wordpress_cache_map.conf`. Anonymous GETs still MISS then HIT;
+  logged-in cookies, POSTs, `/wp-admin`, `/wp-login`, `/wp-cron` and
+  `/wp-json` still bypass. Removed the dead `$302_method` `if` from
+  `sample_psi.conf`. The Pingvin sample keeps one access-control `if` because
+  it must emit `return 444`; `map` cannot produce a response.
 
 ### Local fork changes (November 03, 2026, 1.6.4)
 
