@@ -1,3 +1,18 @@
+### Local fork changes (November 04, 2026, 1.6.8)
+
+* Added `scripts/auto_tune.sh`, called by `scripts/nginx_conf.sh` after every
+  sync. It derives Angie `worker_rlimit_nofile`, `worker_connections`, FastCGI
+  buffers, PHP upstream keepalive, TLS session cache, open-file caches,
+  request-limit zones and every FastCGI/proxy cache size from CPU count, RAM,
+  free disk and the NVMe/SSD/HDD class. Validated on 1..48 vCPU and
+  1..128 GB RAM profiles; `angie -t` runs before the reload.
+* PHP-FPM pool timeouts are 300 s (was 100 s), matching Angie's 360 s
+  `fastcgi_read_timeout`. A first XenForo install rebuild previously exceeded
+  100 s and reported "build processes did not complete".
+* `nginx_conf.sh` creates `custom.d/`, runs `systemctl daemon-reload` before
+  reloading, and no longer emits ShellCheck SC2043. `auto_tune.sh` keeps
+  `fastcgi_busy_buffers_size` below the total FastCGI buffer pool.
+
 ### Local fork changes (November 03, 2026, 1.6.4)
 
 * Added `h5bp/wordpress_cache.conf`: a cookie-aware guest full-page cache.
