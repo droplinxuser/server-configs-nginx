@@ -1,3 +1,13 @@
+### Local fork changes (November 04, 2026, 1.6.10)
+
+* Moved the PHP-FPM pool templates (`www_81.conf` … `www_85.conf`),
+  `custom_dan.ini` and `php-fpm-limits.conf` to
+  `ubuntu-setup-script/configs/php/`. PHP-FPM is not Angie configuration and
+  the Angie repo should only contain the Angie/Nginx tree.
+* `scripts/nginx_conf.sh` now syncs only Angie configuration. It removes old
+  PHP-FPM files from `/etc/angie/scripts` during upgrades, so existing hosts
+  are cleaned automatically.
+
 ### Local fork changes (November 04, 2026, 1.6.9)
 
 * Moved `scripts/auto_tune.sh` out of this repository. Hardware-aware Angie
