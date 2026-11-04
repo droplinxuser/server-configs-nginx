@@ -45,10 +45,18 @@ rsync -a --no-owner --no-group --chmod=D755,F644 \
     --exclude='h5bp/tls/private.key' --exclude='h5bp/tls/certificate.pem' \
     "$WORK_DIR"/ "$TARGET_DIR"/
 mkdir -p "$TARGET_DIR/snippets" "$TARGET_DIR/custom.d"
+# Remove macOS AppleDouble files that can appear when a local checkout is
+# used via CONFIG_SOURCE_DIR.
+find "$TARGET_DIR" -name '._*' -delete 2>/dev/null || true
 
 # Remove sample keys and old setup.sh-managed overrides that duplicated the
 # cache zones, log_format and limiter variables now provided by this tree.
 rm -rf "$TARGET_DIR/test"
+# Older deployments copied PHP-FPM configs into /etc/angie/scripts. PHP-FPM is
+# not Angie config; its templates now live in ubuntu-setup-script/configs/php.
+rm -f "$TARGET_DIR"/scripts/www_*.conf \
+      "$TARGET_DIR/scripts/custom_dan.ini" \
+      "$TARGET_DIR/scripts/php-fpm-limits.conf"
 rm -f "$TARGET_DIR/scripts/auto_tune.sh" \
       "$TARGET_DIR/http.d/98_setup_cache.conf" \
       "$TARGET_DIR/http.d/99_setup_overrides.conf" \
