@@ -1,7 +1,5 @@
 # [Nginx Server Configs](https://github.com/h5bp/server-configs-nginx)
 
-[![Server CI](https://github.com/h5bp/server-configs-nginx/actions/workflows/server.yml/badge.svg)](https://github.com/h5bp/server-configs-nginx/actions/workflows/server.yml)
-
 **Nginx Server Configs** is a collection of configuration files that can help
 your server improve the website's performance and security, while also
 ensuring that resources are served with the correct content-type and are
@@ -10,8 +8,8 @@ accessible, if needed, even cross-domain.
 ## Scope
 
 This repository intentionally contains only **Angie/Nginx** configuration.
-PHP-FPM, server/system, MariaDB, Valkey and Elasticsearch configuration, the
-legacy basic-setup script and config-diff tooling live in
+PHP-FPM, server/system, MariaDB, Valkey and Elasticsearch configuration and
+config-diff tooling live in
 [`droplinxuser/ubuntu-setup-script`](https://github.com/droplinxuser/ubuntu-setup-script).
 `scripts/nginx_conf.sh` only syncs this Angie tree into `/etc/angie`; it does
 not own PHP-FPM config anymore.
@@ -49,7 +47,7 @@ Angie packages include `http_acme_module`. To replace Certbot:
 
 ## Local fork changes
 
-This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.6.10:
+This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.6.12:
 
 - Hardware-aware tuning is owned by `ubuntu-setup-script/setup.sh` (the
   `--optimize` command, also used by the installers). `scripts/nginx_conf.sh`

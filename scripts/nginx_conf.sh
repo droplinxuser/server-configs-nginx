@@ -52,6 +52,15 @@ find "$TARGET_DIR" -name '._*' -delete 2>/dev/null || true
 # Remove sample keys and old setup.sh-managed overrides that duplicated the
 # cache zones, log_format and limiter variables now provided by this tree.
 rm -rf "$TARGET_DIR/test"
+# Remove legacy upstream demo/error pages and sample key files that older
+# deployments may still have.
+rm -f "$TARGET_DIR"/v3.html "$TARGET_DIR"/ua.html "$TARGET_DIR"/503.html \
+      "$TARGET_DIR"/ssl/default/certificate.pem "$TARGET_DIR"/ssl/default/private.key
+# Superseded / unsupported sample templates.
+rm -f "$TARGET_DIR"/conf.d/templates/sample_basic_php.conf \
+      "$TARGET_DIR"/conf.d/templates/sample_psi.conf \
+      "$TARGET_DIR"/conf.d/templates/sample_pingvin_proxy.conf \
+      "$TARGET_DIR"/conf.d/templates/sample_proxy_pass.conf
 # Older deployments copied PHP-FPM configs into /etc/angie/scripts. PHP-FPM is
 # not Angie config; its templates now live in ubuntu-setup-script/configs/php.
 rm -f "$TARGET_DIR"/scripts/www_*.conf \
