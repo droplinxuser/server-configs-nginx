@@ -1,3 +1,13 @@
+### Local fork changes (November 04, 2026, 1.6.13)
+
+* **Never cache 5xx responses in the WordPress and XenForo guest caches.**
+  A transient PHP/DB failure could fill `fastcgicache` with a 500 page, and
+  `fastcgi_cache_use_stale ... http_500` then kept serving that stale error
+  after the application recovered. Both `fastcgi_cache_valid 500 502 503 504
+  0s;` and the removal of `http_500` from `fastcgi_cache_use_stale` are now in
+  `h5bp/wordpress_cache.conf` and `h5bp/php_xf.conf`. `setup.sh --optimize`
+  upgrades existing deployments in place.
+
 ### Local fork changes (November 04, 2026, 1.6.12)
 
 * Removed legacy/unused files: upstream demo pages `v3.html`, `ua.html`,
