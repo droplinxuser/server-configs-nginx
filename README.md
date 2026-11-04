@@ -51,7 +51,9 @@ This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.6.8:
   `angie -t` passes. A failed download leaves the previous file intact.
 - `h5bp/wordpress_cache.conf` adds a cookie-aware guest page cache for
   WordPress (60 s, bypassed for logged-in users, POSTs, admin, cron and REST).
-  Measured on a 16 vCPU VPS: ~242 -> ~9,972 req/s, p99 8.3 ms.
+  The bypass decision is assembled with `map` in
+  `http.d/wordpress_cache_map.conf` instead of `if` blocks. Measured on a
+  16 vCPU VPS: ~242 -> ~9,972 req/s, p99 8.3 ms.
 - Removed the unused `scripts/install_angie.sh`; package installation is owned
   by `setup.sh`, so this repository stays limited to configuration and config
   deployment.
