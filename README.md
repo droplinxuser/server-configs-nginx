@@ -9,14 +9,16 @@ accessible, if needed, even cross-domain.
 
 ## Scope
 
-This repository intentionally contains only **Angie/Nginx and PHP-FPM**
-configuration. Server/system/MariaDB configuration, the legacy basic-setup
-script and config-diff tooling live in
+This repository intentionally contains only **Angie/Nginx** configuration.
+PHP-FPM, server/system, MariaDB, Valkey and Elasticsearch configuration, the
+legacy basic-setup script and config-diff tooling live in
 [`droplinxuser/ubuntu-setup-script`](https://github.com/droplinxuser/ubuntu-setup-script).
+`scripts/nginx_conf.sh` only syncs this Angie tree into `/etc/angie`; it does
+not own PHP-FPM config anymore.
 
 ## Local fork changes
 
-This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.6.9:
+This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.6.10:
 
 - Hardware-aware tuning is owned by `ubuntu-setup-script/setup.sh` (the
   `--optimize` command, also used by the installers). `scripts/nginx_conf.sh`
@@ -58,9 +60,9 @@ This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.6.9:
 - Removed the unused `scripts/install_angie.sh`; package installation is owned
   by `setup.sh`, so this repository stays limited to configuration and config
   deployment.
-- PHP-FPM pool templates (`scripts/www_8*.conf`), `scripts/custom_dan.ini` and
-  `scripts/php-fpm-limits.conf` are the source of truth used by `setup.sh`.
-  Add `scripts/www_<ver>.conf` when adding a new PHP version.
+- PHP-FPM pool templates, `custom_dan.ini` and `php-fpm-limits.conf` moved to
+  `ubuntu-setup-script/configs/php/`. They are not Angie configuration and are
+  no longer synced into `/etc/angie/scripts`.
 - Added `sample_php.conf` (generic/Lychee front controller) and
   `sample_node.conf` (Node proxy + WebSocket) templates.
 - Template defects were repaired (duplicate SSL/proxy includes, `;;`, missing
