@@ -49,7 +49,8 @@ mkdir -p "$TARGET_DIR/snippets" "$TARGET_DIR/custom.d"
 # Remove sample keys and old setup.sh-managed overrides that duplicated the
 # cache zones, log_format and limiter variables now provided by this tree.
 rm -rf "$TARGET_DIR/test"
-rm -f "$TARGET_DIR/http.d/98_setup_cache.conf" \
+rm -f "$TARGET_DIR/scripts/auto_tune.sh" \
+      "$TARGET_DIR/http.d/98_setup_cache.conf" \
       "$TARGET_DIR/http.d/99_setup_overrides.conf" \
       "$TARGET_DIR/http.d/limit_req_whitelist.conf" \
       "$TARGET_DIR/http.d/fastcgi_cache_conf" \
@@ -109,16 +110,11 @@ for cache_dir in "${CACHE_DIRS[@]}"; do
 done
 
 #-------------------------------------------------------------------------------
-# Hardware-aware tuning
-#-------------------------------------------------------------------------------
-if [[ -x "$TARGET_DIR/scripts/auto_tune.sh" ]]; then
-    echo "    Applying hardware-aware tuning..."
-    bash "$TARGET_DIR/scripts/auto_tune.sh" "$TARGET_DIR"
-fi
-
-#-------------------------------------------------------------------------------
 # Test the config and reload Angie if valid
 #-------------------------------------------------------------------------------
+# Hardware-aware tuning is owned by ubuntu-setup-script/setup.sh so the same
+# code runs during install and `setup.sh --optimize`.  This script only syncs
+# the repository tree; setup.sh applies the tuning before the final reload.
 echo "    Testing Angie configuration..."
 if /usr/sbin/angie -t; then
     echo "    Configuration OK - reloading Angie..."
