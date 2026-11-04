@@ -16,16 +16,17 @@ script and config-diff tooling live in
 
 ## Local fork changes
 
-This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.6.8:
+This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.6.9:
 
-- `scripts/auto_tune.sh` runs after each config sync and scales worker
+- Hardware-aware tuning is owned by `ubuntu-setup-script/setup.sh` (the
+  `--optimize` command, also used by the installers). `scripts/nginx_conf.sh`
+  now only syncs the repository tree; setup.sh scales worker
   descriptors/connections, FastCGI buffers, upstream keepalive, TLS session
   cache, open-file caches, request-limit zones and HTTP cache sizes from the
-  host's CPU count, RAM, free disk space and storage class. The repository is
-  no longer tuned for one fixed 16-core machine.
+  host's CPU count, RAM, free disk space and storage class.
 - `worker_connections` is capped at 65k per worker (about 1M total on a
   16-core host) instead of 300k, cutting connection-slot memory from ~2 GB to
-  ~0.5 GB; auto_tune lowers it further on small hosts.
+  ~0.5 GB; setup.sh lowers it further on small hosts.
 - `resolver` uses the systemd-resolved stub `127.0.0.53` first, with public
   fallbacks. The old `127.0.0.1` first entry made dynamic lookups wait for a
   timeout on Ubuntu.

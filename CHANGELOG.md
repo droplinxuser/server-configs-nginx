@@ -1,3 +1,12 @@
+### Local fork changes (November 04, 2026, 1.6.9)
+
+* Moved `scripts/auto_tune.sh` out of this repository. Hardware-aware Angie
+  and PHP-FPM tuning now lives in `ubuntu-setup-script/setup.sh` and is shared
+  by the installers and the new `setup.sh --optimize` command.
+  `scripts/nginx_conf.sh` is again a pure config deployer: it syncs, creates
+  directories, validates and reloads. This removes the duplicate tuning path
+  and lets `--optimize` tune an existing Angie install without a repo sync.
+
 ### Local fork changes (November 04, 2026, 1.6.8)
 
 * Added `scripts/auto_tune.sh`, called by `scripts/nginx_conf.sh` after every
