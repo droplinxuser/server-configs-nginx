@@ -44,7 +44,7 @@ rsync -a --no-owner --no-group --chmod=D755,F644 \
     --exclude='.github/' --exclude='test/' --exclude='.editorconfig' \
     --exclude='h5bp/tls/private.key' --exclude='h5bp/tls/certificate.pem' \
     "$WORK_DIR"/ "$TARGET_DIR"/
-mkdir -p "$TARGET_DIR/snippets"
+mkdir -p "$TARGET_DIR/snippets" "$TARGET_DIR/custom.d"
 
 # Remove sample keys and old setup.sh-managed overrides that duplicated the
 # cache zones, log_format and limiter variables now provided by this tree.
@@ -98,11 +98,9 @@ fi
 #-------------------------------------------------------------------------------
 echo "    Creating log and cache directories..."
 install -d -m 750 -o www-data -g www-data "$LOG_DIR"
-for log in error.log; do
-    [[ -e "$LOG_DIR/$log" ]] || : > "$LOG_DIR/$log"
-    chown www-data:www-data "$LOG_DIR/$log" 2>/dev/null || true
-    chmod 640 "$LOG_DIR/$log"
-done
+[[ -e "$LOG_DIR/error.log" ]] || : > "$LOG_DIR/error.log"
+chown www-data:www-data "$LOG_DIR/error.log" 2>/dev/null || true
+chmod 640 "$LOG_DIR/error.log"
 
 for cache_dir in "${CACHE_DIRS[@]}"; do
     mkdir -p "$cache_dir"
@@ -111,11 +109,20 @@ for cache_dir in "${CACHE_DIRS[@]}"; do
 done
 
 #-------------------------------------------------------------------------------
+# Hardware-aware tuning
+#-------------------------------------------------------------------------------
+if [[ -x "$TARGET_DIR/scripts/auto_tune.sh" ]]; then
+    echo "    Applying hardware-aware tuning..."
+    bash "$TARGET_DIR/scripts/auto_tune.sh" "$TARGET_DIR"
+fi
+
+#-------------------------------------------------------------------------------
 # Test the config and reload Angie if valid
 #-------------------------------------------------------------------------------
 echo "    Testing Angie configuration..."
 if /usr/sbin/angie -t; then
     echo "    Configuration OK - reloading Angie..."
+    /usr/bin/systemctl daemon-reload || true
     /usr/bin/systemctl reload angie.service
     # Angie's master opens log files as root. Normalise pre-existing logs for
     # the UMask=0027 drop-in; new files are already 0640.
