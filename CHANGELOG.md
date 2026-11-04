@@ -1,3 +1,14 @@
+### Local fork changes (November 05, 2026, 1.6.14)
+
+* **FastCGI and XenForo-proxy cache fills no longer stage through a temp
+  path.** `http.d/fastcgi_cache.conf`, `http.d/fastcgi_cache_chev.conf` and
+  `http.d/xf_proxy_cache.conf` now set `use_temp_path=off`, matching
+  `http.d/proxy_cache.conf`. Angie writes each cache file directly into its
+  cache directory instead of creating a temp file and renaming it, removing an
+  extra write and metadata operation on every cache fill. `setup.sh
+  --optimize` rewrites the zone/max_size values in place and preserves the new
+  option.
+
 ### Local fork changes (November 04, 2026, 1.6.13)
 
 * **Never cache 5xx responses in the WordPress and XenForo guest caches.**
