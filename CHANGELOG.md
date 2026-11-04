@@ -1,3 +1,14 @@
+### Local fork changes (November 04, 2026, 1.6.12)
+
+* Removed legacy/unused files: upstream demo pages `v3.html`, `ua.html`,
+  `503.html`; checked-in sample TLS keys under `h5bp/tls/` and `ssl/default/`;
+  superseded `sample_basic_php.conf`, `sample_psi.conf`,
+  `sample_pingvin_proxy.conf` and `sample_proxy_pass.conf`; and the stale
+  upstream GitHub workflows that referenced the old `nginx.conf` and deleted
+  `test/vhosts` tree.
+* `scripts/nginx_conf.sh` now deletes those legacy files from existing
+  `/etc/angie` deployments during the next sync.
+
 ### Local fork changes (November 04, 2026, 1.6.10)
 
 * Moved the PHP-FPM pool templates (`www_81.conf` … `www_85.conf`),
