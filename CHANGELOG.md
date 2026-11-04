@@ -6,6 +6,12 @@
   `scripts/nginx_conf.sh` is again a pure config deployer: it syncs, creates
   directories, validates and reloads. This removes the duplicate tuning path
   and lets `--optimize` tune an existing Angie install without a repo sync.
+* Removed per-request `PHP_ADMIN_VALUE open_basedir` from `php_wp.conf` and
+  `php_flarum.conf`. PHP-FPM retains admin values in a worker across requests,
+  so a WordPress request could impose `/var/www/wp.test/public/` on the next
+  unrelated vhost served by that worker. This caused `open_basedir` warnings
+  and 500s on a shared pool. Dedicated pools should use
+  `php_admin_value[open_basedir]` instead.
 
 ### Local fork changes (November 04, 2026, 1.6.8)
 
