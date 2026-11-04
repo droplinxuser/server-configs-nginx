@@ -18,7 +18,7 @@
   and lets `--optimize` tune an existing Angie install without a repo sync.
 * Removed per-request `PHP_ADMIN_VALUE open_basedir` from `php_wp.conf` and
   `php_flarum.conf`. PHP-FPM retains admin values in a worker across requests,
-  so a WordPress request could impose `/var/www/wp.test/public/` on the next
+  so a WordPress request could impose `/var/www/example.com/public/` on the next
   unrelated vhost served by that worker. This caused `open_basedir` warnings
   and 500s on a shared pool. Dedicated pools should use
   `php_admin_value[open_basedir]` instead.
