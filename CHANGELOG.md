@@ -1,3 +1,13 @@
+### Local fork changes (November 05, 2026, 1.6.15)
+
+* **The remaining guest caches no longer accept a stale 500.** The 1.6.13
+  fix covered WordPress and XenForo, but `h5bp/php_chev.conf`,
+  `h5bp/php_flarum.conf` and `h5bp/php_xf_proxy.conf` still listed
+  `http_500` in `fastcgi_cache_use_stale` and cached every response for
+  15s/5s through `fastcgi_cache_valid any`. All three now use
+  `fastcgi_cache_valid 500 502 503 504 0s;` and no longer serve a stale 500.
+  `setup.sh --optimize` upgrades these files in place on existing hosts.
+
 ### Local fork changes (November 05, 2026, 1.6.14)
 
 * **FastCGI and XenForo-proxy cache fills no longer stage through a temp
