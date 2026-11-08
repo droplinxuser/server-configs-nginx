@@ -1,3 +1,22 @@
+### Local fork changes (November 09, 2026, 1.6.17)
+
+* **WordPress and sensitive-file hardening is now on by default.**
+  - `h5bp/location/security_file_access.conf` blocks dotfiles (except
+    `/.well-known/`), `wp-config.php`, `readme.html`, `license.txt`,
+    `xmlrpc.php`, `wp-admin/install.php`, `wp-trackback.php`, `.env`,
+    composer manifests, plugin backup directories and database/archive dumps.
+  - `h5bp/php_wp.conf` refuses to execute PHP from `uploads`, `upgrade`,
+    `cache`, `backup*`, `wpvividbackups`, `aiowps_backups` and
+    `backup-migration-*`. The deny rule is placed before the generic PHP
+    location because regex locations match in file order.
+  - `h5bp/basic.conf` enables the existing `Permissions-Policy` header.
+  - `angie.conf` writes a buffered access log
+    (`/var/www/logs/angie/access.log main buffer=64k flush=5s`) instead of
+    `access_log off`, so an intrusion can be investigated. logrotate already
+    covers `/var/www/logs/*/*.log`.
+* Existing hosts receive all four through `setup.sh --optimize`, which syncs
+  this tree before applying the hardware profile.
+
 ### Local fork changes (November 08, 2026, 1.6.16)
 
 * **The deployer moved to `ubuntu-setup-script`.** `scripts/nginx_conf.sh` was
