@@ -11,8 +11,10 @@ This repository intentionally contains only **Angie/Nginx** configuration.
 PHP-FPM, server/system, MariaDB, Valkey and Elasticsearch configuration and
 config-diff tooling live in
 [`droplinxuser/ubuntu-setup-script`](https://github.com/droplinxuser/ubuntu-setup-script).
-`scripts/nginx_conf.sh` only syncs this Angie tree into `/etc/angie`; it does
-not own PHP-FPM config anymore.
+`setup.sh` in
+[`droplinxuser/ubuntu-setup-script`](https://github.com/droplinxuser/ubuntu-setup-script)
+syncs this Angie tree into `/etc/angie`; this repository no longer ships a
+deployer script and does not own PHP-FPM config.
 
 ## Angie built-in ACME
 
@@ -50,8 +52,10 @@ Angie packages include `http_acme_module`. To replace Certbot:
 This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.6.12:
 
 - Hardware-aware tuning is owned by `ubuntu-setup-script/setup.sh` (the
-  `--optimize` command, also used by the installers). `scripts/nginx_conf.sh`
-  now only syncs the repository tree; setup.sh scales worker
+  `--optimize` command, also used by the installers). `setup.sh --sync-angie`
+  re-applies the same profile on an existing host. The deployer
+  (`deploy_angie_tree()`) lives in setup.sh and only syncs the repository
+  tree; setup.sh scales worker
   descriptors/connections, FastCGI buffers, upstream keepalive, TLS session
   cache, open-file caches, request-limit zones and HTTP cache sizes from the
   host's CPU count, RAM, free disk space and storage class.
@@ -74,7 +78,7 @@ This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.6.12:
 - Rate limiting exempts loopback, uses 100 GET/s and 30 POST/HEAD/s for
   external clients, and returns `429` instead of a connection-dropping `444`.
 - `gzip_static on` is enabled; pre-compressed assets are served when present.
-- `scripts/nginx_conf.sh` creates the `/home/*_cache` directories owned by
+- The setup.sh deployer creates the `/home/*_cache` directories owned by
   `www-data`, removes old setup.sh/pre-refactor filenames, tests and reloads.
   Set `CONFIG_SOURCE_DIR=/path` to deploy a local checkout; `CONFIG_REPO_REF`
   selects a branch or tag.

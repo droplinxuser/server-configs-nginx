@@ -1,3 +1,12 @@
+### Local fork changes (November 08, 2026, 1.6.16)
+
+* **The deployer moved to `ubuntu-setup-script`.** `scripts/nginx_conf.sh` was
+  merged into `setup.sh` as `deploy_angie_tree()` so a fresh install,
+  `--optimize` and the new `setup.sh --sync-angie` run one implementation.
+  This repository now contains configuration only; use
+  `setup.sh --sync-angie` (or a new install) to deploy the tree and apply the
+  hardware profile.
+
 ### Local fork changes (November 05, 2026, 1.6.15)
 
 * **The remaining guest caches no longer accept a stale 500.** The 1.6.13
