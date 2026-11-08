@@ -1,3 +1,11 @@
+### Local fork changes (November 09, 2026, 1.6.18)
+
+* **Access logging is disabled by default for performance.** The 1.6.17
+  change enabled a buffered access log; that is reverted. `error_log` remains
+  enabled, and the deny rules from 1.6.17 are unchanged. Re-enable a buffered
+  log per host when a forensic trail is required:
+  `access_log /var/www/logs/angie/access.log main buffer=64k flush=5s;`
+
 ### Local fork changes (November 09, 2026, 1.6.17)
 
 * **WordPress and sensitive-file hardening is now on by default.**
