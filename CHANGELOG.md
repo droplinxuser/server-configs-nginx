@@ -1,10 +1,20 @@
-### Local fork changes (November 09, 2026, 1.6.20)
+### Local fork changes (November 10, 2026, 1.6.21)
+
+* **Dynamic compression level 4.** `http.d/brotli_conf` ships
+  `brotli_comp_level 4` and `h5bp/web_performance/compression.conf`
+  `gzip_comp_level 4` (both were 5).  Measured on an 8-vCPU XenForo origin
+  per 130 KB member page: Brotli 5 = 5.3 ms of Angie CPU, 4 = 2.7 ms,
+  3 = 1.5 ms for 21 / 23 / 24 KB on the wire; gzip 5 = 3.1 ms, 3 = 1.9 ms.
+  Level 4 halves the compressor's CPU for 10% more bytes.  `setup.sh`
+  1.15.0 writes the same levels (3 on 1-2 CPU hosts) on `--optimize`.
+* Host names, LAN addresses and user names were removed from the changelog
+  and README.### Local fork changes (November 09, 2026, 1.6.20)
 
 * **No FastCGI upstream keepalive cache.** `upstream local_php` no longer
   carries `keepalive 64`, and `h5bp/php*.conf` sets `fastcgi_keep_conn off`.
   An idle FastCGI connection occupies one PHP-FPM worker (FPM waits on that
   socket for the next request), and the cache is per Angie worker, so 16
-  idle connections pinned all 16 workers on the 8-vCPU live-origin.example host.  A
+  idle connections pinned all 16 workers on an 8-vCPU live XenForo origin.  A
   request that landed on an Angie worker without a cached connection waited
   for the upstream `keepalive_timeout` (60 s default): 4-7 of every 64
   non-cacheable `/login` requests took 60-112 s.  Without the cache, 3 x 128
@@ -522,7 +532,7 @@
 
   See: http://nginx.org/en/docs/http/ngx_http_core_module.html#keepalive_timeout
 
-  Signed-off-by: Alan Orth <alan.orth@gmail.com>
+  Signed-off-by: Alan Orth
 
 
 - Fix typo. [Craig Davison]
@@ -537,7 +547,7 @@
 
 - Fix format. [Bo-Yi Wu]
 
-  Signed-off-by: Bo-Yi Wu <appleboy.tw@gmail.com>
+  Signed-off-by: Bo-Yi Wu
 
 
 - Update nginx.conf. [beilharz]
