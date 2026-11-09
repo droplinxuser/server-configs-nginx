@@ -1,3 +1,21 @@
+### Local fork changes (November 09, 2026, 1.6.19)
+
+* **XenForo PHP responses keep the security headers.** `add_header` inside
+  a location replaces the whole server-level set, so the `X-5m-Cache` /
+  `X-1h-Cache-Status` headers in `h5bp/php_xf.conf` and
+  `h5bp/php_xf_proxy.conf` silently dropped `Strict-Transport-Security` and
+  `Referrer-Policy` from every XenForo page (measured on a fresh `app=xf`
+  vhost: no HSTS on `/`). Both includes now re-include
+  `h5bp/security/strict-transport-security.conf` and
+  `h5bp/security/referrer-policy.conf` inside the location.
+* **`/account/avatar` and `/account/banner` upload limit works.**
+  `h5bp/xf2.conf` declared `location /account/(avatar|banner)` as a prefix
+  location, which matches the parentheses literally and never fired; it is
+  now `location ~ ^/account/(avatar|banner)`, so the 5 MB
+  `client_max_body_size` applies to avatar uploads.
+* Existing hosts receive both through `setup.sh --optimize` 1.12.0, which
+  also repairs hand-maintained copies of the include.
+
 ### Local fork changes (November 09, 2026, 1.6.18)
 
 * **Access logging is disabled by default for performance.** The 1.6.17
