@@ -70,7 +70,7 @@ This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.6.12:
   PHP-FPM worker and the cache is per Angie worker, so a request on an Angie
   worker without a cached connection waits for the old 60 s
   `keepalive_timeout` (measured: 4-7 of 64 live /login requests took 60-112 s
-  on live-origin.example). `fastcgi_keep_conn` is `off` in `h5bp/php*.conf` for the
+  on a live XenForo origin). `fastcgi_keep_conn` is `off` in `h5bp/php*.conf` for the
   same reason; a Unix-socket connect is cheaper than the stalls.
 - `h5bp/php*.conf` uses 128×32k FastCGI buffers instead of 512×32k, and fixes
   `PATH_TRANSLATED` so PHP-FPM does not return “Access denied”.
