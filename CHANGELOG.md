@@ -1,3 +1,16 @@
+### Local fork changes (November 09, 2026, 1.6.20)
+
+* **No FastCGI upstream keepalive cache.** `upstream local_php` no longer
+  carries `keepalive 64`, and `h5bp/php*.conf` sets `fastcgi_keep_conn off`.
+  An idle FastCGI connection occupies one PHP-FPM worker (FPM waits on that
+  socket for the next request), and the cache is per Angie worker, so 16
+  idle connections pinned all 16 workers on the 8-vCPU live-origin.example host.  A
+  request that landed on an Angie worker without a cached connection waited
+  for the upstream `keepalive_timeout` (60 s default): 4-7 of every 64
+  non-cacheable `/login` requests took 60-112 s.  Without the cache, 3 x 128
+  requests measured p99 33-38 ms and max 93 ms (p50 unchanged at 24-25 ms).
+  `setup.sh --optimize` 1.14.1 removes the directive from adopted hosts.
+
 ### Local fork changes (November 09, 2026, 1.6.19)
 
 * **XenForo PHP responses keep the security headers.** `add_header` inside

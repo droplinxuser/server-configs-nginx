@@ -56,7 +56,7 @@ This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.6.12:
   re-applies the same profile on an existing host. The deployer
   (`deploy_angie_tree()`) lives in setup.sh and only syncs the repository
   tree; setup.sh scales worker
-  descriptors/connections, FastCGI buffers, upstream keepalive, TLS session
+  descriptors/connections, FastCGI buffers, TLS session
   cache, open-file caches, request-limit zones and HTTP cache sizes from the
   host's CPU count, RAM, free disk space and storage class.
 - `worker_connections` is capped at 65k per worker (about 1M total on a
@@ -66,7 +66,12 @@ This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.6.12:
   fallbacks. The old `127.0.0.1` first entry made dynamic lookups wait for a
   timeout on Ubuntu.
 - The global 16 MB/s `limit_rate` cap is disabled; use per-vhost limits.
-- FastCGI upstream keepalive is 64 (was 3).
+- There is **no FastCGI upstream keepalive cache**: every idle connection pins one
+  PHP-FPM worker and the cache is per Angie worker, so a request on an Angie
+  worker without a cached connection waits for the old 60 s
+  `keepalive_timeout` (measured: 4-7 of 64 live /login requests took 60-112 s
+  on live-origin.example). `fastcgi_keep_conn` is `off` in `h5bp/php*.conf` for the
+  same reason; a Unix-socket connect is cheaper than the stalls.
 - `h5bp/php*.conf` uses 128×32k FastCGI buffers instead of 512×32k, and fixes
   `PATH_TRANSLATED` so PHP-FPM does not return “Access denied”.
 - TLS session tickets and 0-RTT early data are disabled by default.
