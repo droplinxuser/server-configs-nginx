@@ -1,3 +1,17 @@
+### Local fork changes (November 11, 2026, 1.6.22)
+
+* **Malformed upload-accept URLs are answered with 404, without error-log
+  noise.**  A browser extension or broken uploader markup resolves the
+  `<input type=file accept=".aac,.apng,...">` list as a relative URL, so
+  XenForo thread pages receive requests such as
+  `/threads/2393063/.aac,.apng,...,.webp`.  The dotfile rule
+  (`location ~* /\.(?!well-known/) { deny all; }`) correctly blocked them
+  but logged `access forbidden by rule` at error level for every hit.  A new
+  regex location placed immediately before the dotfile rule answers 404 for
+  the exact `.<ext>(,.<ext>)+` shape.  Verified on Angie 1.12.4: the
+  accept-list path returns 404 with no error entry, while `/.git/config`
+  still returns 403 and is logged.
+
 ### Local fork changes (November 10, 2026, 1.6.21)
 
 * **Dynamic compression level 4.** `http.d/brotli_conf` ships
