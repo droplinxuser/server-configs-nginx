@@ -1,3 +1,64 @@
+### Local fork changes (November 13, 2026, 1.6.23)
+
+* **Cached guest pages no longer replay another visitor's cookies.**  The
+  XenForo and Chevereto guest caches stored the response of whoever asked
+  first with `fastcgi_ignore_headers ... Set-Cookie` and sent it, cookie
+  included, to every later guest: all XenForo guests received the same
+  `xf_csrf` cookie and all Chevereto guests the same `PHPSESSID` (one shared
+  PHP session and one `auth_token`).  Angie cannot hide a header
+  conditionally, so the PHP include is now two locations:
+  * `location ~ \.php` serves members, POSTs and no-cache URIs.  It has no
+    cache and passes `Set-Cookie` untouched.
+  * a named location (`@xf_guest_cache`, `@chev_guest_cache`) serves GET/HEAD
+    from a visitor without a session/login cookie on a cacheable URI.  It
+    caches and sets `fastcgi_hide_header Set-Cookie`.
+
+  The PHP location hands a request over with
+  `if ($xf_guest_cacheable) { return 418; }` and a server-level
+  `error_page 418 = @xf_guest_cache;` (`return` is the one safe use of `if`;
+  the decision itself is still a `map`).  New maps in
+  `http.d/fastcgi_cache.conf` and `http.d/fastcgi_cache_chev.conf`:
+  `$guest_cache_method`, `$xf_guest_cookie`, `$xf_guest_cacheable`,
+  `$chev_guest_cookie`, `$chev_guest_cacheable`.
+* **XenForo (`h5bp/php_xf.conf`).**  Include it once, at the server level (a
+  named location is not allowed inside another location; use `h5bp/php.conf`
+  there).  XenForo is built for cookie-less cached pages: `XF.KeepAlive`
+  POSTs to `/login/keep-alive` when the `xf_csrf` cookie is missing and
+  installs a fresh token in every form.  `$nocacheuri` now also lists the
+  routes without friendly URLs (`/index.php?login/...`), `/api` and
+  `/connected_account.php`.  `h5bp/php_xf_proxy.conf` (css.php, proxy.php,
+  attachments, sitemap) hides `Set-Cookie` as well.
+* **Chevereto.**  `h5bp/php_chev.conf` is now the plain, never-cached PHP
+  location and may stay nested (the template nests it for `/dashboard` and
+  `/update`).  The guest cache moved to the new `h5bp/php_chev_cache.conf`,
+  included once at the server level; `sample_chev.conf` does that.  **An
+  existing Chevereto vhost keeps working but serves guests uncached until its
+  server-level `include h5bp/php_chev.conf;` is changed to
+  `include h5bp/php_chev_cache.conf;`** (`setup.sh` 1.20.8 does it during
+  `--optimize`).  Chevereto embeds the session's `auth_token` in every page
+  and has no client-side refresh, so a visitor that owns a `PHPSESSID` (any
+  uncached page creates one: `/`, `/login`, `/upload`, `/json`) is always
+  rendered by PHP; only cookie-less requests are answered from the cache.
+  **Do not use the cache include on a site that allows guest uploads:** a
+  cookie-less guest on a cached page has no valid token, so the first upload
+  from that page is rejected until the page is reloaded (measured).  Keep
+  `h5bp/php_chev.conf` at the server level there; `setup.sh` 1.20.8 decides
+  this from the site's `guest_uploads` setting.
+  `$nocacheuri_chev` gains `/api`, `/captcha-verify`, `/update`, `?lang=` and
+  the home page with a query string.  PHP responses now also keep the
+  security headers of `basic.conf`.
+* **WordPress is unchanged.**  `h5bp/wordpress_cache.conf` never ignored
+  `Set-Cookie`, so a response that sets a cookie is not stored at all
+  (verified with a plugin that sets a per-visitor cookie: three requests,
+  three MISSes, three different values).
+* Verified on Angie 1.12.4 with XenForo 2.3.13, Chevereto 4.5.9 and WordPress
+  7.1.4 (`tests/stress-site/guest-cache-cookie-test.sh` in
+  ubuntu-setup-script, 61 checks): cached pages carry no `Set-Cookie` on MISS,
+  HIT and STALE; login, logout, failed login and POSTs keep their cookies;
+  member pages are never stored; throughput is unchanged.
+* Not changed, same pattern: `h5bp/php_flarum.conf`, `h5bp/xf_proxy_pass.conf`
+  and `h5bp/proxy_cdn.conf` still ignore `Set-Cookie` without hiding it.
+
 ### Local fork changes (November 11, 2026, 1.6.22)
 
 * **Malformed upload-accept URLs are answered with 404, without error-log
