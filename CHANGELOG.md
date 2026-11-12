@@ -1,3 +1,52 @@
+### Local fork changes (November 13, 2026, 1.6.24)
+
+* **`/script.php/anything` no longer bypasses the PHP deny rules.**  The PHP
+  locations match `[^/]\.php(/|$)`, but the deny rules here and in the vhost
+  templates end in `\.php$`, so a PATH_INFO suffix skipped them and the file
+  was executed: `/wp-config.php/x`, `/wp-admin/install.php/x`,
+  `/xmlrpc.php/x` (WordPress), `/src/config.php/x` (XenForo),
+  `/app/env.php/y` and PHP below the writable `content/` (Chevereto).
+  `h5bp/php_wp.conf`, `php_xf.conf`, `php_chev.conf` and
+  `php_chev_cache.conf` now start with `location ~ \.php/ { return 404; }`.
+  None of the three applications routes through PATH_INFO; `h5bp/php.conf`
+  (generic applications) is unchanged.
+* **XenForo: no PHP below `/data`, `/js`, `/styles`, `/src`, `/library`.**
+  `/data/anything.php` was executed (the directory is writable by XenForo).
+  `h5bp/xf2.conf` returns 404 for PHP in those directories.
+* **XenForo guest-cache key can no longer be forged with a cookie.**  The
+  key appended the raw `xf_style_variation` cookie to `$request_uri`, so
+  `GET /` with `xf_style_variation=threads/x.1/` produced the key of
+  `/threads/x.1/` and stored the forum index there for every guest.  New
+  maps in `http.d/fastcgi_cache.conf` (`$xf_key_variation`, `$xf_key_style`,
+  `$xf_key_language`) pass only well-formed values, and the keys in
+  `php_xf.conf`, `php_xf_proxy.conf` and `xf_proxy_pass.conf` separate every
+  part with `|`.  Style id, language id and the gzip variant are now part of
+  the repository key (provisioning used to add them).
+* **Error responses are really not cached.**  `fastcgi_cache_valid` is
+  first-match in file order, so `500 502 503 504 0s` after `any` was never
+  reached and a 5xx was cached for the `any` TTL.  The line now comes first
+  in `php_xf.conf`, `php_xf_proxy.conf`, `php_chev_cache.conf` and
+  `php_flarum.conf`.
+* **Shorter negative TTLs.**  XenForo 404: 24 h -> 1 min (a "not found" for
+  the next post or member id outlived its creation), 301: 24 h -> 1 h.
+  Chevereto 404/410: 1 h -> 5 min.
+* **`$guest_cache_enc` in the WordPress and Chevereto cache keys.**  When
+  PHP compresses a document root's output (`zlib.output_compression`;
+  setup.sh 1.21.0 writes that per root) the cache stores the gzip page and
+  a hit is sent as is: 0.12 ms of CPU instead of about 1 ms to compress it
+  again, 14.8k -> 67k req/s for a cached WordPress page on a 16-thread host.
+  Without PHP compression the token only splits the entry in two.
+* **Chevereto: `USER_SELECTED_LANG` bypasses the guest cache**, so a visitor
+  who picked a language neither receives nor fills the shared page.
+* **`open_file_cache_valid 1h` -> `30s`, `inactive 2h` -> `5m`.**  A cached
+  descriptor is not re-checked until `valid` expires, so a replaced avatar or
+  plugin asset was served stale, or cut to its old length, for up to an hour
+  under a cache-busted URL the browser then keeps for a year.
+* **Chevereto images keep `nosniff` and HSTS** (`sample_chev.conf`; the
+  `add_header` in that location dropped the server-level set).
+* **`sample_php.conf`:** `try_files ... /index.php?$is_args$args` produced
+  `/index.php??a=1`; now `/index.php$is_args$args`.
+
 ### Local fork changes (November 13, 2026, 1.6.23)
 
 * **Cached guest pages no longer replay another visitor's cookies.**  The
