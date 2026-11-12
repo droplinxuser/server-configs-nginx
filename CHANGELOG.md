@@ -1,3 +1,49 @@
+### Local fork changes (November 13, 2026, 1.6.25)
+
+Validated on the Ubuntu 26.04.1 audit host with WordPress 7.1.4, XenForo
+2.3.13 and Chevereto 4.5.9, both on a fresh deploy and after
+`setup.sh --optimize`.  Pair with ubuntu-setup-script 1.21.2.
+
+* **Host-header cache poisoning closed.**  Guest caches key on `$host`, but
+  PHP received the raw `Host` header as `HTTP_HOST`.  `Host:
+  wp.test.local:8443` on the 443 listener shared the normal cache entry and
+  WordPress answered with a cacheable 301 to itself; XenForo rendered the
+  page with the wrong base URL.  `http.d/fastcgi_host.conf` passes
+  `$php_http_host` to FastCGI: the header only when it is exactly `$host` or
+  `$host:<public port>`, otherwise `$host`.  `custom.d/php_public_port.map`
+  declares a NAT/load-balancer port that differs from the local listener.
+  `snippets/fastcgi-php.conf` sets `HTTP_HOST` from it, so a request cannot
+  choose the host PHP sees independently of the cache key.
+* **XenForo API and OAuth responses stay out of the guest cache.**
+  `//api/`, `/Api/` and `/?api/` with `XF-Api-Key` were stored.  The URI
+  maps are case-insensitive and slash-tolerant, and a new `$xf_api_request`
+  map (also covering `XF-Api-User` and `Authorization`) is folded into
+  `$nocacheuri` and repeated on the FastCGI and proxy bypass lines.  The
+  same header test is applied to Flarum (`Authorization`).
+* **Backup and hidden PHP files are no longer downloads.**
+  `/wp-config.php.save`, `/wp-config.txt`, `/backup.zip`,
+  `/src/config.php.save` and `/app/env.php.save` returned 200.
+  `h5bp/location/security_backup_files.conf` blocks PHP below dot paths and
+  every `.php*` suffix before the PHP location.  `security_root_archives.conf`
+  blocks archives and dumps in an application document root only, so a
+  download or static vhost keeps serving `/release-1.2.zip` and nested
+  uploads stay reachable.
+* **WordPress guest cache: REST and nonce traffic bypass it.**  A
+  cookie-authenticated REST call (`X-WP-Nonce`) or `?rest_route=` could be
+  stored; both now bypass.  URI prefixes accept repeated slashes and any
+  case (`//wp-json/`, `/WP-Admin/`), matching how WordPress normalises the
+  path.  Chevereto's no-cache map gets the same treatment.
+* **TLS early data is visible to the application.**
+  `snippets/fastcgi-php.conf` passes `HTTP_EARLY_DATA` from
+  `$ssl_early_data` with `if_not_empty`; the strict TLS policy passes
+  `Early-Data` to proxied applications, so a replayable request can be
+  answered with 425.
+* **Smaller corrections.**  `sample_chev.conf` no longer lets the
+  `composer.json`/`.gitignore` rule match unrelated names; XenForo's
+  `admin.php`/login/account locations and Flarum's API/login locations keep
+  the root-archive deny; the proxy and FastCGI cache bypass lines agree on
+  header-authenticated clients.
+
 ### Local fork changes (November 13, 2026, 1.6.24)
 
 * **`/script.php/anything` no longer bypasses the PHP deny rules.**  The PHP
