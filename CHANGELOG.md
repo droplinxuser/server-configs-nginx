@@ -1,3 +1,31 @@
+### Local fork changes (November 14, 2026, 1.6.27)
+
+Findings of the PHP version-management audit on the Ubuntu 26.04.1 host.
+Pair with ubuntu-setup-script 1.21.4.
+
+* **Path dot-segments are rejected before they reach an application.**  Angie
+  resolves `.`/`..` for `$uri` and `try_files`, but FastCGI keeps the raw
+  request line in `REQUEST_URI`.  Chevereto's front controller treats
+  `/foo/../index.php` as an invalid setup and answered 500 ("Invalid PHP
+  front controller setup"), which fills the error log and makes a stray
+  link look like a server fault.  `h5bp/location/security_dot_segments.conf`
+  (included by every `basic*.conf`) answers 400 for a dot-segment in the
+  path, while a query value such as `/?next=./` still works.  Verified with
+  `curl --path-as-is`: 400 on all three vhosts, normal URLs unchanged.
+* **A direct Chevereto `/index.php` redirects to the canonical root.**
+  Chevereto answers 500 when it sees its own front controller as a route.
+  The PHP location in `h5bp/php_chev_cache.conf` and `h5bp/php_chev.conf`
+  now returns 301 to `/$is_args$args` when `$request_uri` is exactly
+  `/index.php`; internal rewrites keep the pretty URL in `$request_uri` and
+  are unaffected.  Verified: `/index.php` -> 301 `/`, `/index.php?x=1` ->
+  301 `/?x=1`, `/`, `/explore` and `/login` unchanged.
+* **Chevereto 4.5.9 / PHP 8.4 compatibility note.**  The bundled
+  Intervention Image 2.x uses an implicit nullable parameter, which PHP 8.4
+  deprecates.  Chevereto's shutdown handler turns that deprecation into a
+  failed request on the first login after each FPM restart; the one-line
+  `?ImageManager` fix is documented in ubuntu-setup-script 1.21.4.  With
+  it, the guest cache, login, uploads and cron are clean on PHP 8.4 and 8.5.
+
 ### Local fork changes (November 13, 2026, 1.6.26)
 
 Findings of an independent review of 1.6.25, each reproduced on the Ubuntu
