@@ -82,6 +82,8 @@ This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.6.12:
   sysguard) remain disabled.
 - Rate limiting exempts loopback, uses 100 GET/s and 30 POST/HEAD/s for
   external clients, and returns `429` instead of a connection-dropping `444`.
+  Login, registration and password-reset submissions have their own zone:
+  20 a minute per address after a burst of 10.
 - `gzip_static on` is enabled; pre-compressed assets are served when present.
 - The setup.sh deployer creates the `/home/*_cache` directories owned by
   `www-data`, removes old setup.sh/pre-refactor filenames, tests and reloads.
