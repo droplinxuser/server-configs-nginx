@@ -1,3 +1,67 @@
+### Local fork changes (November 13, 2026, 1.6.26)
+
+Findings of an independent review of 1.6.25, each reproduced on the Ubuntu
+26.04.1 audit host (WordPress 7.1.4, XenForo 2.3.13, Chevereto 4.5.9, a
+Flarum stub) before it was fixed and re-probed after `setup.sh --optimize`.
+Pair with ubuntu-setup-script 1.21.3.
+
+* **Flarum guest cache no longer stores member pages or replays a session
+  cookie.**  `h5bp/php_flarum.conf` bypassed only on `flarum_remember`, so a
+  visitor logged in without "remember me" (`flarum_session`) had pages and
+  `/api/` responses stored for an hour and served, with the stored
+  `Set-Cookie`, to everyone.  The handler now uses the XenForo split: a
+  cookie-less GET/HEAD for a cacheable URI goes to `@flarum_guest_cache`
+  (Set-Cookie hidden, 5 m for 200/301, 1 m for 404), everything else goes
+  straight to PHP.  `http.d/fastcgi_cache_flarum.conf` holds the maps
+  (`/api`, `/admin`, `/login`, `/logout`, `/register`, `/confirm`, `/reset`,
+  `/settings`, `/notifications`, `/flags`, `/auth`; `Authorization`).
+  `/index.php/x` answers 404 and the URL-override headers are cleared on the
+  cached path.  Verified with a stub application: guest MISS then HIT, a
+  session cookie or API token is `BYPASS` and never fills the cache.
+* **Route locations are anchored.**  `^/(login|logout|misc|register|
+  lost-password|contact)`, `^/account/(avatar|banner)`, `^/(admin.php|install)`
+  and `^/(dashboard|update)` are tried before the file-access rules, so
+  `/install.sh`, `/install.log`, `/login.bak`, `/misc.old`, `/update.log` and
+  `/dashboard.bak` were served with 200 when such a file existed.  The
+  patterns now end in `(?:/|$)` and include the new
+  `h5bp/location/security_leftover_files.conf` for files below the route.
+  Verified: all eight probes are 403/404; `/login/`, `/register/`,
+  `/admin.php`, `/install/` and `/dashboard` behave as before.  setup.sh
+  1.21.3 applies the same change to vhosts that were already generated.
+* **Chevereto guest cache varies on the visitor's language.**  Chevereto
+  picks the interface language from `Accept-Language`, which was not in the
+  key: one `Accept-Language: zh-CN` request stored the Chinese page for every
+  guest.  `$chev_key_lang` (first language tag) is both the header PHP
+  receives and part of the key.  Verified: zh-CN, es-ES and no header each
+  get their own entry; `en;q=0.1, zh;q=0.9` cannot fill the Chinese entry.
+* **Login endpoints have their own rate limit.**  A new `limit_req_login`
+  zone (20 submissions a minute per address after a burst of 10) counts POSTs
+  to `wp-login.php`, `xmlrpc.php`, XenForo `/login`, `/lost-password`,
+  `/register` and `admin.php?login`, Chevereto `/login`, `/signup` and
+  `/account/password-forgot`, and Flarum `/login`, `/register`, `/api/token`
+  and `/api/forgot`.  Verified from a second machine: 40 WordPress login
+  POSTs give 11 answers and 29 `429`; page views and other POSTs are not
+  counted.  Loopback stays exempt.
+* **Redirects and per-visitor errors expire quickly.**  XenForo and Chevereto
+  guest caches kept 302/303 for an hour ("latest post", "what's new"); they
+  now keep 301 for 1 h and 302/303 for 1 m.  A XenForo 403 is not stored.
+* **Proxy includes.**  `proxy_cdn.conf` sends no `Cookie`/`Authorization` to
+  the origin and hides `Set-Cookie` (a member's request could otherwise store
+  a private attachment for 182 days).  `xf_proxy_pass.conf` uses the same
+  guest maps as the FastCGI path, no longer stores a response that sets a
+  cookie, never serves a stale 500 and keeps a 404 for 1 m instead of 2 h.
+  `proxy_non_php.conf` and `proxy_ws.conf` pass `$php_http_host` instead of
+  the raw `Host` header.  All proxy includes set `expires off` (the
+  http-level map stamped `max-age=31536000` on proxied downloads) and pass
+  `Early-Data`.
+* **Smaller items.**  `X-Content-Type-Options: nosniff` on XenForo and Flarum
+  static files; `max_size=16g` on the Chevereto cache zone;
+  `wp-content/ai1wm-backups/` joins the blocked backup directories.
+
+Not changed: no `limit_conn` (a shared NAT address can legitimately hold many
+connections); HSTS stays `includeSubDomains; preload`; `h5bp/tls/http3.conf`
+is unchanged; the XenForo cookie prefix is assumed to be `xf_`.
+
 ### Local fork changes (November 13, 2026, 1.6.25)
 
 Validated on the Ubuntu 26.04.1 audit host with WordPress 7.1.4, XenForo
