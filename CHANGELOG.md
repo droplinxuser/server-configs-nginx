@@ -1,3 +1,24 @@
+### Local fork changes (November 15, 2026, 1.6.28)
+
+Findings of the seventh audit of the 1.21 line on the Ubuntu 26.04.1 host.
+Pair with ubuntu-setup-script 1.21.7.
+
+* **The XenForo upgrader login is rate-limited like the board login.**  The
+  `limit_req_login` map covered `admin.php?login`, `/login` and the password
+  reset endpoints, but not the upgrader's own form.  `/install/index.php`
+  answers a 303 to `?upgrade/`, which renders "Upgrade system login", and its
+  POST target `index.php?upgrade/login` is a second full administrator
+  credential prompt outside the ACP.  It accepted unlimited attempts at the
+  generic POST rate (30 r/s) while `/login` was throttled to 20/min, so it
+  was the cheapest way to brute-force an administrator password.  The map
+  now matches `^POST:/+install/index\.php\?/*upgrade/login` too.  Verified
+  from the workstation with the rate-limit exemption removed: eleven
+  submissions were answered 400 (missing CSRF token) and every one after
+  them 429, where the same sequence was unlimited before the change.  The
+  `/install/` location itself is unchanged: upgrades still work, and the
+  optional `auth_basic` in the vhost remains the way to hide the directory
+  completely.
+
 ### Local fork changes (November 14, 2026, 1.6.27)
 
 Findings of the PHP version-management audit on the Ubuntu 26.04.1 host.
