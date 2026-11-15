@@ -1,3 +1,21 @@
+### Local fork changes (November 16, 2026, 1.6.30)
+
+Findings of the header-consistency review on a live XenForo/WordPress host.
+Pair with ubuntu-setup-script 1.21.12.
+
+* **One cache-status header name for every application.**  Each guest cache
+  added `add_header` with its own name: XenForo `X-5m-Cache`, Chevereto
+  `X-30-Cache-Status`, Flarum `X-Guest-Cache`, the XenForo proxy
+  `X-1h-Cache-Status` / `X-Proxy-Cache`, and the CDN template `X-CDN`
+  alongside WordPress's `X-Cache-Status`.  Monitoring dashboards, log
+  pipelines and the functional harness had to know six names for the same
+  `$upstream_cache_status` value.  All of them now use the conventional
+  **`X-Cache-Status`** (`HIT`/`MISS`/`BYPASS`/`EXPIRED`/`STALE`), including
+  the `BYPASS` headers on the uncached locations.  The setup.sh XenForo
+  tuner writes the same name and renames a legacy `X-5m-Cache` line in place,
+  so an old include cannot end up with two different status headers.
+  Operators who alert on the old names should update those rules.
+
 ### Local fork changes (November 15, 2026, 1.6.29)
 
 Findings of the eighth audit of the 1.21 line on the Ubuntu 26.04.1 host.
