@@ -1,3 +1,50 @@
+### Local fork changes (November 15, 2026, 1.6.29)
+
+Findings of the eighth audit of the 1.21 line on the Ubuntu 26.04.1 host.
+Pair with ubuntu-setup-script 1.21.8.
+
+* **WordPress's own scheduler works again.**  `/wp-cron.php` was in the
+  "never reachable" list, so `spawn_cron()` — the loopback POST WordPress
+  makes when `DISABLE_WP_CRON` is not set — received 403.  On a host managed
+  by setup.sh the managed crontab covers the queue, but a site installed by
+  hand, or an existing site before its first `--optimize`, silently lost
+  scheduled posts, updates and plugin jobs.  The endpoint now answers
+  loopback (`127.0.0.1`, `::1`) only, through the same handler as the generic
+  PHP location (extracted to `h5bp/location/php_wp_handler.conf`); every
+  other client gets 403.  Verified both ways from the host and the LAN.
+* **Percent-encoded dot segments are rejected.**  The guard matched the raw
+  `$request_uri`, where `%2e` is not decoded, so `/a/%2e%2e/index.php`
+  passed while `$uri` was normalised for the backend.  The pattern now
+  accepts either spelling.  Verified: `/threads/%2e%2e/login` answers 400.
+* **Flarum's writable `assets/` tree cannot execute PHP.**  The other three
+  application includes deny PHP below their writable upload/cache
+  directories; Flarum's compiled assets (and upload extensions) were
+  executable.  One upload-validation bug would have been direct RCE there
+  and inert on the other applications.
+* **The XenForo guest cache cannot be filled with one-shot keys.**  The
+  style-variation/style-id/language tokens are bounded in format but not in
+  cardinality, so `Cookie: xf_style_variation=<32 random chars>` produced a
+  new key for the same URL on every request (a full page copy each) and
+  could evict the hot set from the 16 GB zone.  `fastcgi_cache_min_uses 2`
+  on `@xf_guest_cache` stores only a key that has been requested twice;
+  a single-shot flood stores nothing and a real URL costs one extra render.
+* **The CDN template no longer caches XenForo media pages.**  `/media/<id>/`
+  is the permission-checked media-gallery HTML route, not an asset, but
+  `sample_proxy.conf` sent it to `proxy_cdn` (182-day TTL, `expires max`,
+  cookies and `Cache-Control` stripped), so a login redirect or a stale 403
+  could be pinned at the edge and in browsers.  The pattern is narrowed to
+  `/attachments/` and `/proxy.php`.  The proxy also verifies the origin
+  certificate now (`proxy_ssl_verify`, SNI, system CA bundle) instead of
+  caching an unauthenticated TLS response for six months.
+* **Smaller template fixes.**  `h5bp/tls/http3.conf` no longer carries
+  `reuseport`: a second vhost including it made `angie -t` fail with
+  "duplicate listen options".  `conf.d/templates/example.com.conf` gained the
+  port-80 redirect server (and an ACME HTTP-01 path) that every sample
+  template already had; without it the default server answered 444.
+  `sample_cp_shlink.conf` no longer points `auth_basic_user_file` at a file
+  that is not in the repository (every request, static files included,
+  answered 500).
+
 ### Local fork changes (November 15, 2026, 1.6.28)
 
 Findings of the seventh audit of the 1.21 line on the Ubuntu 26.04.1 host.
