@@ -10,7 +10,7 @@ Pair with ubuntu-setup-script 1.21.8.
   hand, or an existing site before its first `--optimize`, silently lost
   scheduled posts, updates and plugin jobs.  The endpoint now answers
   loopback (`127.0.0.1`, `::1`) only, through the same handler as the generic
-  PHP location (extracted to `h5bp/location/php_wp_handler.conf`); every
+  PHP location (extracted to `h5bp/php_wp_handler.conf`); every
   other client gets 403.  Verified both ways from the host and the LAN.
 * **Percent-encoded dot segments are rejected.**  The guard matched the raw
   `$request_uri`, where `%2e` is not decoded, so `/a/%2e%2e/index.php`
