@@ -1,3 +1,19 @@
+### Local fork changes (November 17, 2026, 1.6.36)
+
+Findings of the 1.21.21 audit (Ubuntu + CentMinMod, XenForo 2.3.13).
+Pair with ubuntu-setup-script 1.21.21.
+
+* **FastCGI cache hits no longer pay for AIO or Brotli.**  Every cached
+  location (`php_xf.conf` guest cache, `php_xf_proxy.conf`,
+  `wordpress_cache.conf`, `php_chev_cache.conf`, `php_flarum.conf`) now sets
+  `aio off; brotli off;`.  The body stored by the cache is already gzip from
+  the application, so recompressing it or routing the cache-file read through
+  the AIO thread pool only adds CPU.  Static assets keep the global
+  `aio threads`/Brotli path.  On CentMinMod/Nginx, `aio threads` cost 16 % of
+  cached-page throughput (167k -> 140k); on Angie the scoped change measured
+  neutral (59k vs 59k), so it is a cache-only guard rather than a global IO
+  change.
+
 ### Local fork changes (November 16, 2026, 1.6.35)
 
 Findings of the 1.21.20 audit on the live WordPress/XenForo/Chevereto host
