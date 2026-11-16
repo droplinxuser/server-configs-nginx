@@ -1,3 +1,55 @@
+### Local fork changes (November 16, 2026, 1.6.32)
+
+Findings of the 1.21.15 audit on a live WordPress/XenForo/Chevereto host
+(Anubis on and off).  Pair with ubuntu-setup-script 1.21.15.
+
+* **The login rate limiter saw the raw request line.**  `$req_login_key`
+  matched `$request_uri`, while nginx routes on the decoded `$uri`:
+  `POST /%77p-login.php` reached WordPress but did not match the credential
+  zone, so the 20 attempts/minute limit became the generic 30 r/s (about
+  1,800/min).  Measured before: 14/14 encoded POSTs accepted; after: 429
+  after 11.  The key is now `"$request_method:$uri$is_args$args"`.
+* **Cache-bypass prefixes match a path segment.**  `^/wp-admin` and
+  `^/(?:data|js|...)` only matched a document root at the site root; a
+  WordPress/XenForo install at `/blog/` or `/forum/` (or a hand-written vhost
+  whose root is the parent directory) kept executing PHP from writable
+  upload/data trees.  The rules are unanchored at `^` and present in the
+  handler includes (`h5bp/php_wp.conf`, `php_xf.conf`, `php_chev_cache.conf`,
+  `php_flarum.conf`), not only in the sample vhost, so a hand-written vhost
+  that includes just the handler is covered.  Verified 403/404 from
+  `/wp-content/uploads/`, `/blog/wp-content/uploads/`, `/data/`,
+  `/forum/data/` and `/content/` on the live host.
+  The cache maps deliberately keep `$request_uri`: `try_files` rewrites a
+  pretty URL to `/index.php`, so a `$uri` key lost the Chevereto home-page
+  and `?lang=` no-cache tests and replayed the first visitor's session.
+* **The XenForo proxy locations were dead.**  `/proxy.php`, `/css.php`,
+  `/webmanifest.php`, `/sitemap.php` and `/attachments` were ordinary prefix
+  locations, so the server-level `location ~ \.php` from `php_xf.conf` won
+  and the 1-hour proxy cache, `expires` and no-cache guard never applied.
+  They are `^~` now; `/css.php` answers `X-Cache-Status: HIT` with a 1-year
+  expiry.
+* **Upstream TLS is verified.**  `h5bp/proxy_pass.conf` and
+  `xf_proxy_pass.conf` had `proxy_ssl_verify off` while the CDN snippet
+  verified; both now verify with the system trust store and SNI, and a
+  self-signed upstream must opt out in its own vhost.
+* **`X-Forwarded-Proto` is trusted only from a terminator.**  `$app_https`
+  accepted the header from any client, so a plain-HTTP request could make
+  PHP see `HTTPS=on`, emit `https://` links and set Secure cookies.  The map
+  now trusts the Anubis Unix peer and loopback, with
+  `custom.d/https_trusted_peers.map` for another terminator.  A direct
+  client's spoofed header is ignored (verified over port 80).
+* **PHP gets the public port and scheme on a Unix-socket backend.**  Both
+  were taken from the listener, so behind Anubis `$server_port` was empty:
+  Chevereto built `https://host:/image/...`, and WordPress/XenForo saw a
+  portless canonical URL.  `snippets/fastcgi-php.conf` now passes
+  `SERVER_PORT $php_public_port` and `REQUEST_SCHEME $app_scheme`
+  (`custom.d/php_public_port.map` still overrides a NAT/Docker port).
+* **The Shlink and SFS samples no longer redirect errors to a third party.**
+  `error_page 404/500/... = @redirectto` answered `307 https://xx.com/xx`
+  (SFS: `302 https://main.site/`); a `307` replays the method and body, so a
+  mistyped form POST (credentials included) was re-sent to that host and the
+  site's own 404/5xx pages disappeared.  The lines are removed.
+
 ### Local fork changes (November 16, 2026, 1.6.31)
 
 PHP's `HTTPS` flag survives a TLS terminator.  A host behind Anubis, a CDN or
