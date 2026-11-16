@@ -36,12 +36,24 @@ fetch_ranges() {
   echo "real_ip_header CF-Connecting-IP;"
 } > "$TMP_FILE"
 
+# Keep the live file until the generated one passes angie -t.  Installing
+# first and testing second left a rejected list in place for the next reload.
+BACKUP_FILE=""
+if [[ -f $CLOUDFLARE_FILE_PATH ]]; then
+  BACKUP_FILE=$(mktemp "${CLOUDFLARE_FILE_PATH}.bak.XXXXXX")
+  cp -p "$CLOUDFLARE_FILE_PATH" "$BACKUP_FILE"
+fi
 install -m 644 "$TMP_FILE" "$CLOUDFLARE_FILE_PATH"
+rm -f "$TMP_FILE"
 
-# Test before reloading; keep a valid old file if the generated one is bad.
-if /usr/sbin/angie -t; then
-  /usr/bin/systemctl reload angie.service
-else
-  echo "ERROR: Angie rejected the refreshed Cloudflare list" >&2
+if ! /usr/sbin/angie -t; then
+  if [[ -n $BACKUP_FILE ]]; then
+    install -m 644 "$BACKUP_FILE" "$CLOUDFLARE_FILE_PATH"
+    /usr/sbin/angie -t >/dev/null 2>&1 || true
+  fi
+  rm -f "$BACKUP_FILE"
+  echo "ERROR: Angie rejected the refreshed Cloudflare list; the previous file was restored" >&2
   exit 1
 fi
+rm -f "$BACKUP_FILE"
+/usr/bin/systemctl reload angie.service

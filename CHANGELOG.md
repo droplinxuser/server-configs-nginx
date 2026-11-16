@@ -1,3 +1,55 @@
+### Local fork changes (November 16, 2026, 1.6.35)
+
+Findings of the 1.21.20 audit on the live WordPress/XenForo/Chevereto host
+(Anubis on and off).  Pair with ubuntu-setup-script 1.21.20.
+
+* **PHP was executable in `/attachments`.**  `location ^~ /attachments`
+  (XenForo) includes `php_xf_proxy.conf`, which defines a nested PHP handler;
+  because `^~` suppresses the server-level writable-tree deny, an uploaded or
+  converted `.php` file under the public attachment namespace executed.  A
+  nested `\.(php|phtml|phar)$ -> 404` now precedes the handler.  Verified:
+  `/attachments/probe.php` answers 404, not the probe body.
+* **WordPress backups were downloadable on subdirectory installs.**  The
+  plugin-backup deny was anchored at `^/wp-content/` and the root-archive
+  deny at `^/`, so `/blog/wp-content/updraft/backup.zip` was served as a
+  static file.  Both the backup directory and `wp-cron.php` rules are now
+  unanchored (`(?:^|/)`).  Verified: root and `/blog/` archives answer 403,
+  and a subdirectory `wp-cron.php` cannot be triggered from the internet.
+* **Security headers vanished from cached/PHP responses.**  A per-location
+  `add_header` replaces the server-level set.  The XenForo PHP and
+  guest-cache locations restored only HSTS/Referrer-Policy; Flarum and
+  Chevereto restored a different subset.  Every one now re-includes
+  `x-content-type-options`, `cross-origin/requests`, `permissions-policy`,
+  `cross-origin-policy` and `cache-control` where used.  Verified on a guest
+  XenForo HIT: `X-Content-Type-Options`, `Permissions-Policy`,
+  `Cross-Origin-Resource-Policy` and `Referrer-Policy` are present.
+* **Proxied applications were told the internal scheme and port.**  All five
+  proxy includes sent `X-Forwarded-Proto $scheme` and `X-Forwarded-Port
+  $server_port`, i.e. `http` and `0` behind the Anubis/Unix-socket leg, so
+  Node/PHP-proxy apps built `http://` URLs and dropped Secure cookies while
+  the FastCGI path got the truth.  They now send `$app_scheme` and
+  `$php_public_port`.
+* **`proxy_buffers 512 32k` reserved 16 MiB per in-flight proxied response.**
+  Reduced to `8 32k` (256 KiB) with a 128 KiB busy-buffer cap; larger bodies
+  spill to a temp file, as the FastCGI path already does.
+* **Guest-cache keys could collide across the public port/scheme.**
+  WordPress/XenForo/Chevereto/Flarum keys now include `$app_scheme` and
+  `$php_public_port`; the XenForo proxy key also carries
+  `$xf_key_variation`, matching the sibling key.
+* **`Accept-Encoding: gzip;q=0` received a gzipped body.**  The cache-encoding
+  map matched any `gzip` substring, including an explicit refusal.  It now
+  matches only a plain gzip token; a q-valued header falls back to the
+  identity entry, which that client accepts.
+* **Encoded dot separators skipped the 400 guard.**  `/..%2findex.php` reached
+  the application with a dot segment because the guard only accepted `/`, `?`
+  or end after the dots.  `%2f` and `%5c` now match too (verified 400).
+* **A rejected Cloudflare list stayed live.**  `cloudflare.sh` installed the
+  generated include before testing it, so a failed `angie -t` left the broken
+  file for the next reload.  The previous file is now restored on failure.
+* **Dead DHE suites.**  The balanced policy offered two DHE ciphers without an
+  `ssl_dhparam` (nginx's 1024-bit built-in group); they are removed.  Every
+  ECDHE client already preferred the remaining suites.
+
 ### Local fork changes (November 16, 2026, 1.6.34)
 
 Findings of the 1.21.18 audit on the live WordPress/XenForo/Chevereto host
