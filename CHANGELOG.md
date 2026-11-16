@@ -1,3 +1,24 @@
+### Local fork changes (November 16, 2026, 1.6.33)
+
+Findings of the 1.21.16 audit on the live WordPress/XenForo/Chevereto host
+(Anubis on and off).  Pair with ubuntu-setup-script 1.21.16.
+
+* **The credential limiter inherited the generic whitelist.**  `$req_login_key`
+  used `$limit_req_key`, the map that the `geo` whitelist empties.  setup.sh
+  writes `SETUP_LIMIT_REQ_EXEMPT` into that same whitelist so a load generator
+  or reverse proxy is not limited by the 100 r/s GET zone, and the exemption
+  therefore also removed the 20 attempts/minute login limit: with a persisted
+  benchmark exemption for 192.168.1.200, 16/16 `POST /wp-login.php` answered
+  200 where the tenth should have been 429.  A CDN/proxy range added there
+  would have done the same for every visitor behind it.  The credential zone
+  now has its own key (`$limit_req_login_key`) whose whitelist contains only
+  loopback, where local health checks and the functional suites log in
+  repeatedly and where an account can already reach PHP-FPM directly.  A
+  trusted proxy must configure real_ip so `$binary_remote_addr` is the
+  visitor.  Verified: 10 allowed then 429 from the exempt LAN address, 16/16
+  from loopback, and generic GET traffic from the same LAN address still
+  unthrottled.
+
 ### Local fork changes (November 16, 2026, 1.6.32)
 
 Findings of the 1.21.15 audit on a live WordPress/XenForo/Chevereto host
