@@ -1,3 +1,19 @@
+### Local fork changes (November 17, 2026, 1.6.37)
+
+Findings of the 1.21.23 audit (Ubuntu 26.04, Angie 1.12.4, XenForo 2.3.13,
+PHP 8.5).  Pair with ubuntu-setup-script 1.21.23.
+
+* **FastCGI guest caches refresh in the background.**  `php_xf.conf` and
+  `php_chev_cache.conf` now ship `fastcgi_cache_background_update on;`.
+  `--optimize` already patched that line into a live XenForo cache after
+  every repository sync, so a fresh install produced a tree that differed
+  from the optimized one; the line now belongs to the tree.  A 5-minute
+  (XenForo) or 1-hour (Chevereto) page TTL otherwise turns every
+  cache-lifetime boundary into a synchronised PHP render for the hot set:
+  one request refreshes, every other visitor keeps the stale copy.
+  `angie -t` clean; cached tiers unchanged within run noise on the audit
+  host (guest 31.3k with Anubis, 90.2k without).
+
 ### Local fork changes (November 17, 2026, 1.6.36)
 
 Findings of the 1.21.21 audit (Ubuntu + CentMinMod, XenForo 2.3.13).
