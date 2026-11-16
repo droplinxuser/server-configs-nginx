@@ -1,3 +1,24 @@
+### Local fork changes (November 17, 2026, 1.6.38)
+
+CentMinMod comparison on the same AMD EPYC 4245P (6C/12T, 30 GiB, 2x894 GB
+NVMe).  Pair with ubuntu-setup-script 1.21.24.
+
+* **`ssl_buffer_size 16k` instead of 1400.**  A 15.6 KB cached page left the
+  server as ~11 TLS records at 1400 bytes and as one record at 16k.
+  `wrk -t4 -c100` on the XenForo FastCGI guest cache, same page and TLS
+  stack: **151,438 -> 442,765 req/s** (2.9x, 6.4 GB/s).  The 1400-byte value
+  only helps first-byte latency on a constrained link; it is a large
+  throughput loss on a cache-heavy origin, so it is no longer the default.
+  Hosts that need the old behaviour can override the directive per vhost.
+* **Angie workers are set to 2/3 of the CPU count by `setup.sh --optimize`**
+  (8 on a 12-thread host): 389-390k cached req/s vs 348-352k with one worker
+  per CPU, dynamic tiers unchanged.  The tree still ships
+  `worker_processes auto;` so a host without setup.sh keeps nginx defaults.
+* **Anubis + cache stack** (`GOGC=off` on >=16 GB, 16k TLS buffer, gzip
+  bodies, static shadow) measured **68,725 req/s** against CentMinMod's
+  59,958, and the Redis + page-cache stack **390,232 vs 157,957**.  Full
+  tables in ubuntu-setup-script `tests/stress-site/AUDIT-CENTMIN-20261117.md`.
+
 ### Local fork changes (November 17, 2026, 1.6.37)
 
 Findings of the 1.21.23 audit (Ubuntu 26.04, Angie 1.12.4, XenForo 2.3.13,
