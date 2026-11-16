@@ -1,3 +1,14 @@
+### Local fork changes (November 16, 2026, 1.6.31)
+
+PHP's `HTTPS` flag survives a TLS terminator.  A host behind Anubis, a CDN or
+a load balancer forwards plain HTTP to the application vhost, so `$https` is
+empty; `is_ssl()` was false and applications could emit `http://` URLs or
+redirect loops.  `http.d/https_map.conf` rebuilds the flag from
+`X-Forwarded-Proto` (default: `$https`, so a direct TLS listener is
+unchanged) and `snippets/fastcgi-php.conf` passes it as `fastcgi_param HTTPS
+$app_https`.  The map is always defined, so the snippet is safe on every
+host.  Pair with ubuntu-setup-script 1.21.14.
+
 ### Local fork changes (November 16, 2026, 1.6.30)
 
 Findings of the header-consistency review on a live XenForo/WordPress host.
