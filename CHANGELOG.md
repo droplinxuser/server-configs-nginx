@@ -1,3 +1,49 @@
+### Local fork changes (November 16, 2026, 1.6.34)
+
+Findings of the 1.21.18 audit on the live WordPress/XenForo/Chevereto host
+(Anubis on and off).  Pair with ubuntu-setup-script 1.21.18.
+
+* **The credential limiter only matched a document root.**  Every alternative
+  in `$req_login_key` was anchored `^POST:/+`, so a WordPress install in
+  `/blog/` or a board in `/forum/` fell through to the generic 30 r/s POST
+  zone: 90x weaker than the intended 20 attempts/minute.  Each alternative now
+  allows a directory prefix (`.*/`); the root case still matches because `.*`
+  may be empty.  Verified from the LAN: `POST /blog/wp-login.php` answered 429
+  by the eleventh request (no limit before).
+* **A percent-encoded query route skipped the credential limiter.**  `$uri` is
+  decoded but `$args` is raw, so `POST /index.php?%6cogin/login` reached
+  XenForo's login controller with a key no keyword matched.  Any
+  percent-encoded query on `index.php`/`admin.php` now enters the credential
+  zone as well; a normal form submit never needs one.  Verified: plain and
+  `%6c`-encoded routes both 429 by the eleventh POST.
+* **PHP stayed executable in `ai1wm-backups/` and `updraft/`.**  The
+  pre-handler deny in `php_wp.conf` listed the other WordPress backup
+  directories, but these two were only denied later in
+  `security_file_access.conf`, which is included after the PHP handler; a
+  shell dropped into either directory executed.  Both are in the pre-handler
+  alternation now.  Verified: an existing `wp-content/ai1wm-backups/x.php`
+  answers 403.
+* **The generic PHP template had no writable-tree deny.**  `sample_php.conf`
+  (Lychee and most front-controller apps) included `h5bp/php.conf` with no
+  rule ahead of the PHP handler, so `/uploads/x.php` executed.  It now denies
+  PHP/PHTML/PHAR below `uploads|sym|storage|dist|vendor` and `composer.*` /
+  `.env` before the handler, and Lychee's `POST /api/Login` (v4 and v2) joins
+  the credential map.
+* **Subdirectory installs bypassed the WordPress credential denies.**
+  `wp-config.php`, `xmlrpc.php` and the installer were anchored to the root in
+  both `php_wp.conf` and `security_file_access.conf`, so `/blog/xmlrpc.php`
+  executed and was unthrottled.
+* **Guest-cache keys and admission.**  WordPress and Chevereto concatenated
+  their key fields without delimiters (XenForo was fixed in 1.6.24); every
+  field is now separated by `|`.  WordPress, Chevereto and Flarum also gain
+  `fastcgi_cache_min_uses 2`, so one-shot query strings cannot evict the hot
+  set (XenForo already had it).
+* **`^~` static blocks skipped the dotfile/credential denies.**  `^~`
+  suppresses regex locations, so `/attachments/.env` and `/images/x.sql` were
+  served if the file existed.  The XenForo attachments block and the Chevereto
+  images block now carry nested dotfile and credential-file denies.  Verified:
+  `/attachments/.env` answers 403.
+
 ### Local fork changes (November 16, 2026, 1.6.33)
 
 Findings of the 1.21.16 audit on the live WordPress/XenForo/Chevereto host
