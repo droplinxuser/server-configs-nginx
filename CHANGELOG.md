@@ -1,3 +1,50 @@
+### Local fork changes (November 17, 2026, 1.6.43)
+
+* **XenForo attachments are cached per guest, not per member.**
+  `h5bp/php_xf_proxy.conf` caches `/attachments/`, `/proxy.php`, `/css.php`
+  and `/sitemap.php` for every visitor.  A member who can see a private-forum
+  or conversation attachment could populate the shared `fastcgicache` entry
+  (`Set-Cookie` is hidden, 1 h TTL) and an anonymous request for the same URL
+  was served their copy.  `$xf_guest_cookie` is now in `fastcgi_no_cache` and
+  `fastcgi_cache_bypass`, and 301 is no longer cached there (a login redirect
+  could be pinned).  The location also restores the full security-header set
+  (`nosniff`, Permissions-Policy, COOP/CORP, Cache-Control) instead of only
+  HSTS and Referrer-Policy.
+* **Chevereto 206 responses are never stored.**  The cache key has no Range
+  component, so a partial body could be replayed to a plain GET for an hour.
+* **Chevereto `/images/` serves modern media.**  AVIF/HEIF/JXL/APNG stills
+  and audio/video were answered 403 by the narrow extension list.  The block
+  now also emits one `Cache-Control` (the manual header plus `expires 365d`
+  produced two contradictory ones).
+* **Percent-encoded routes never enter a guest cache.**  Every bypass map
+  reads the raw `$request_uri` (try_files has rewritten `$uri`), so
+  `/%77p-admin/` or `/%61pi/` reached the application without matching a
+  bypass keyword.  A shared `$req_encoded_path` flag in
+  `http.d/fastcgi_cache.conf` is added to the WordPress, XenForo, Chevereto
+  and Flarum bypass tests; those requests are rendered by PHP instead of
+  stored.
+* **`brotli off;` is gone from five locations.**  It is not a core directive,
+  so a host whose optional module failed to load could not start Angie, and
+  in `h5bp/wordpress_cache.conf` it sat at server level, disabling Brotli for
+  every static asset in the vhost.  Angie never re-compresses a body that
+  already carries `Content-Encoding`, so the directive bought nothing.
+* **Flarum gets the missing headers and URL-override protection.**
+  Referrer-Policy and X-Frame-Options are enabled; both PHP locations blank
+  `X-Original-URL`/`X-Rewrite-URL` (previously only the cached location did,
+  so a crafted header could route to another path while the bypass and
+  credential limiter saw the original one).
+* **CDN proxy fixes.**  `proxy_pass $cdn_origin` leaves `$proxy_host` empty:
+  the sample template now sets `$cdn_host` and `h5bp/proxy_cdn.conf` uses it
+  for `Host`/SNI, keys the cache on the client-visible `$host`, stops caching
+  301 for 182 days, drops 403/404/429 from `proxy_cache_use_stale`, and
+  honours the origin's `Cache-Control` (only `Expires` and `Set-Cookie` are
+  ignored).  The sample's `location /` and `@cdn_back` keep the server-level
+  security headers.
+* **TLS defaults:** `ssl_early_data` is commented out of the strict policy
+  (replayable 0-RTT with no 425 handling) and the session cache is 64 MB
+  (256k sessions) instead of 256 MB; the include's 300 s keepalive matches the
+  global 30 s intent at 60 s.
+
 ### Local fork changes (November 17, 2026, 1.6.42)
 
 * **COEP is no longer sent by default.**  `h5bp/security/cross-origin-policy.conf`
