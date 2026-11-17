@@ -1,3 +1,18 @@
+### Local fork changes (November 17, 2026, 1.6.41)
+
+* **Every upstream verifier is now off.**  `h5bp/proxy_cdn.conf` was the last
+  `proxy_ssl_verify on;` in the tree (used by `conf.d/templates/sample_proxy.conf`);
+  a CDN proxy against a setup.sh self-signed origin would answer 502 and then
+  cache the failure fallback.  It now matches `proxy_pass.conf` and
+  `xf_proxy_pass.conf`: encrypted hop, no origin authentication.  A full scan
+  of the repository finds no `proxy_ssl_verify on` left.
+* **`ssl_verify_client on` is intentionally unchanged.**  That directive in
+  `h5bp/tls/auth_origin.conf` is *inbound* mutual TLS for Cloudflare
+  Authenticated Origin Pulls (the include is commented out in every template).
+  It is not upstream certificate verification, cannot cause a proxy 502, and
+  turning it off would let direct clients bypass the CDN certificate check.
+  The file now says so.
+
 ### Local fork changes (November 17, 2026, 1.6.40)
 
 * **`h5bp/xf_proxy_pass.conf` follows the same upstream TLS default as
