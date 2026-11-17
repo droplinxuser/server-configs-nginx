@@ -1,3 +1,17 @@
+### Local fork changes (November 17, 2026, 1.6.39)
+
+* **Upstream TLS verification is off by default in `h5bp/proxy_pass.conf`.**
+  Origins installed by setup.sh use self-signed certificates; a proxy with
+  `proxy_ssl_verify on` and the public CA bundle answers **502** for every
+  request (`upstream SSL certificate verify error: (18:self-signed
+  certificate)`), because `proxy_ssl_name $proxy_host` also sends the origin
+  IP as SNI and the origin returns its default self-signed cert.  The hop is
+  still encrypted, but the origin is not authenticated.  Turn verification
+  back on only when every origin presents a publicly trusted certificate
+  (for example Cloudflare Origin CA) and `proxy_ssl_name` matches that
+  certificate.  Fixes site-a.example on the Angie proxy edge (203.0.113.22)
+  proxying to its origin (203.0.113.21).
+
 ### Local fork changes (November 17, 2026, 1.6.38)
 
 CentMinMod comparison on the same AMD EPYC 4245P (6C/12T, 30 GiB, 2x894 GB
