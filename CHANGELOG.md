@@ -1,3 +1,17 @@
+### Local fork changes (November 17, 2026, 1.6.42)
+
+* **COEP is no longer sent by default.**  `h5bp/security/cross-origin-policy.conf`
+  set `Cross-Origin-Embedder-Policy: require-corp` for HTML, and
+  `h5bp/php_xf.conf` includes that file inside both PHP locations (the
+  server-level `basic_xf.conf` already had it commented out).  Every
+  cross-origin forum resource without CORP/CORS — user-posted images, media
+  embeds, ads, avatars — was blocked with
+  `ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCOEP`.
+  The `add_header` is now commented out; COOP and CORP remain.  Enable COEP
+  per vhost only for cross-origin isolation (SharedArrayBuffer).  The first
+  site-b.example proxy also had a stale `xfproxycache` entry carrying the old
+  header; clearing it made both proxies serve clean pages.
+
 ### Local fork changes (November 17, 2026, 1.6.41)
 
 * **Every upstream verifier is now off.**  `h5bp/proxy_cdn.conf` was the last
