@@ -1,3 +1,13 @@
+### Local fork changes (November 17, 2026, 1.6.40)
+
+* **`h5bp/xf_proxy_pass.conf` follows the same upstream TLS default as
+  `proxy_pass.conf`.**  XenForo proxy vhosts include the `xf_` variant, so
+  updating only `proxy_pass.conf` left one site-c.example proxy on
+  `proxy_ssl_verify on` and returning 502 for every request
+  (`upstream SSL certificate verify error: (18:self-signed certificate)`).
+  The hop remains encrypted; re-enable verification only with a trusted
+  origin certificate and a matching `proxy_ssl_name`.
+
 ### Local fork changes (November 17, 2026, 1.6.39)
 
 * **Upstream TLS verification is off by default in `h5bp/proxy_pass.conf`.**
