@@ -1,3 +1,21 @@
+### Local fork changes (November 18, 2026, 1.6.45)
+
+* **Only browser-recognised Permissions-Policy features are sent.**  The
+  header still listed `browsing-topics`, `document-domain` and `web-share`.
+  Firefox and Safari never implemented the Privacy Sandbox token and Chrome
+  145 no longer lists the other two, so every response logged
+  `Error with Permissions-Policy header: Unrecognized feature: '…'` in the
+  console (one line per token).  The three are removed; the remaining list
+  (accelerometer, autoplay, camera, display-capture, encrypted-media,
+  fullscreen, geolocation, gyroscope, magnetometer, microphone, midi,
+  payment, picture-in-picture, publickey-credentials-get, screen-wake-lock,
+  sync-xhr, usb, xr-spatial-tracking) is recognised by current Chromium,
+  Firefox and Safari.  The ad-tech tokens some consoles report
+  (`attribution-reporting`, `private-aggregation`, `join-ad-interest-group`,
+  `run-ad-auction`) are not sent by this tree: they come from the ad
+  documents the site's `_ads` template embeds, and no origin change can
+  remove a third-party document's own header.
+
 ### Local fork changes (November 18, 2026, 1.6.44)
 
 * **Media features are no longer disabled by Permissions-Policy.**
