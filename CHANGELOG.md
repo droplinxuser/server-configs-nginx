@@ -1,3 +1,19 @@
+### Local fork changes (November 18, 2026, 1.6.44)
+
+* **Media features are no longer disabled by Permissions-Policy.**
+  `angie.conf` sent `fullscreen=()`, `picture-in-picture=()` and
+  `encrypted-media=()` for every HTML response.  A document policy applies to
+  the frames it embeds, so the forum's own `<video>` controls lost their
+  full-screen button and every `allowfullscreen` iframe (s9e/MediaSites,
+  YouTube, …) was refused full screen — the iframe delegation cannot override
+  a denied top-level policy.  The header now sends `fullscreen=*`,
+  `picture-in-picture=*`, `encrypted-media=*` and `autoplay=(self)`; `*` is
+  required for cross-origin players (`(self)` covers only same-origin
+  frames).  Everything else (camera, microphone, geolocation, USB, payment,
+  …) stays denied.  Verified on `720p.site-b.example` and `site-f.example`
+  (XenForo + s9e/MediaSites): the header carries the new allowlist and the
+  iframes still carry `allowfullscreen`.
+
 ### Local fork changes (November 17, 2026, 1.6.43)
 
 * **XenForo attachments are cached per guest, not per member.**
