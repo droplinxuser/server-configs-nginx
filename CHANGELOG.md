@@ -1,3 +1,18 @@
+### Local fork changes (November 19, 2026, 1.6.46)
+
+* **Flarum guest cache: the cacheable test is one map variable.**
+  `h5bp/php_flarum.conf` tested `if ($flarum_guest_cacheable$req_encoded_path)`;
+  an `if` takes a lone variable, so Angie looked up a variable literally
+  named `flarum_guest_cacheable$req_encoded_path` and `angie -t` failed for
+  every Flarum vhost created since 1.6.43.  The encoded-path flag moved into
+  the `$flarum_guest_cacheable` map (`"1:0:0:0:"`), as XenForo and Chevereto
+  do, and the Flarum cache gained `fastcgi_cache_background_update on;`.
+* **The catch-all 443 server refuses unknown or missing SNI**
+  (`ssl_reject_handshake on;` in `conf.d/1.https.default.conf`).  It used to
+  complete the handshake with the self-signed default certificate, whose
+  CN/SAN is the host name.  The `default_ssl.conf` include stays: with SNI,
+  OpenSSL resumes sessions from the default server's session cache.
+
 ### Local fork changes (November 18, 2026, 1.6.45)
 
 * **Only browser-recognised Permissions-Policy features are sent.**  The
