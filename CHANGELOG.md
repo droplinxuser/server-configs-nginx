@@ -1,3 +1,82 @@
+### Local fork changes (November 20, 2026, 1.6.48)
+
+* **Lean location chain: 25-39 location regexes per guest hit down to 2-4.**
+  nginx tries every regex location in file order until one matches, and a
+  pretty URL matched none of the deny rules, so it walked the whole list,
+  then walked it again after `try_files` redirected to `/index.php`
+  (security_backup_files was even included twice).  Now:
+  * one deny location per application,
+    `h5bp/location/security_{xf,wp,chev,flarum}.conf`: a single regex with
+    the old rules as tiers that keep their order and status codes (named
+    captures pick 404 vs 403 without a second regex; `(?s)` because Angie
+    decodes %0A into `$uri`);
+  * `location = /index.php` for every front controller (the second pass
+    runs no regex) and `location ~ [^/]\.php$` for other scripts; Flarum,
+    which ships one script, has no PHP regex at all;
+  * `snippets/fastcgi-php-noinfo.conf` for those locations: no
+    `fastcgi_split_path_info` (one PCRE call on every request, cache hits
+    included); `snippets/fastcgi-php.conf` keeps the split and both share
+    `fastcgi-php-common.conf`;
+  * the dot-segment check is a map (`http.d/dot_segments.conf`), evaluated
+    once and reused after the internal redirect;
+  * XenForo: exact `= /proxy.php`, `/css.php`, `/webmanifest.php`,
+    `/sitemap.php` (`php_xf_proxy.conf` is now a location body), `^~` for
+    `/data/`, `/js/`, `/styles/` with the deny rule and the long-cache rule
+    nested (`h5bp/location/xf_static_assets.conf`), `^~ /src`;
+  * header-only `basic_headers.conf`, `basic_xf_headers.conf`,
+    `basic_flarum_headers.conf` for the templates.  `basic*.conf`,
+    `php.conf` and the old `security_*` files stay unchanged for generic
+    and older vhosts.
+  Measured, interleaved: guest-cache hits +3.0 % (XenForo), ~+1.5-3.5 %
+  (WordPress, Chevereto); regex+map share of Angie CPU 3.71 % -> 2.89 %
+  (6.35 % before the lean maps below).
+  Holes closed on the way: `/css.php/x` executed css.php with PATH_INFO,
+  `/proxy.php.bak` was served as text, and a dotfile with an image
+  extension under `/data/` (`/data/.x.png`) was served.
+  Removed on purpose (fingerprinting only): WordPress `readme.html`,
+  `license.txt`, plugin `composer.json`/`package.json`, `.psd`/`.fla`
+  anywhere, and the WordPress names in the XenForo/Chevereto/Flarum chains
+  (the files do not exist there).  A few refusals changed code (403 <-> 404;
+  e.g. `/login/x.log`, `/a.php/b.sql`).  A 164-probe status corpus on the
+  test host differed from the old tree only in these listed cases.
+  Notes: a hand-written vhost that defines its own `location = /index.php`
+  next to php_xf/php_wp/php_chev_cache/php_flarum now fails `angie -t`
+  (duplicate location); a server-level include of `php_xf_proxy.conf` is no
+  longer valid; WordPress in a subdirectory needs its own exact
+  `wp-cron.php` block.
+
+* **Lean guest-cache maps: about 26 regex calls per cache hit down to 3.**
+  nginx tries a map's regular expressions in order until one matches, so an
+  ordinary page -- which matches none of the bypass patterns -- ran every
+  one of them on every hit (11 XenForo URI patterns, 4 cookie names, 3 key
+  tokens, the encoding token and 6 login-limit patterns; WordPress about
+  34).  The pattern lists are now single alternations, the common inputs
+  (no cookie, an absent style/language cookie, the Accept-Encoding strings
+  browsers and CDNs send, the request methods, WordPress's all-zero flag
+  string) are exact hash matches that run no regex, and the credential
+  limiter is gated on `POST`, so a GET never evaluates its patterns.  An
+  old/new corpus of 167 URI, cookie, header and method probes gives
+  identical results for every decision variable (cache bypass, guest
+  cookie, key tokens, encoding, encoded path, login key).  Measured,
+  interleaved: guest-cache hits +3.2% (XenForo), +2.6% (WordPress), ~+2%
+  (Chevereto); regex+map share of all CPU samples 6.35% -> 5.02%.
+* **Tracking parameters no longer split the guest cache.**  The cache keys
+  use `$cache_request_uri` (`http.d/cache_key_uri.conf`): `$request_uri`
+  without `utm_*`, `fbclid`, `gclid`, `gclsrc`, `gbraid`, `wbraid`, `dclid`,
+  `msclkid`, `mc_cid`, `mc_eid`, `_ga`, `_gl`, `igshid`, `yclid`, `ttclid`,
+  `twclid`, `li_fat_id` and `srsltid` (case-insensitive, up to six per
+  URL).  `/threads/x.1/?utm_source=facebook&fbclid=...` is answered from
+  the entry of `/threads/x.1/`; other parameters keep their order
+  (`?a=1&utm_source=x&b=2` -> `?a=1&b=2`).  PHP still receives the
+  original `REQUEST_URI`.  A request without a query string runs no regex
+  for this; the query is read from the original request line because
+  `try_files` rewrites `$args` (XenForo's `/index.php?$uri&$args`).
+  Such a request may be answered from the clean entry but never stores
+  one (`$cache_uri_tracking` is in every `fastcgi_no_cache`): a redirect or
+  page that echoes the parameters (WordPress `redirect_canonical` keeps the
+  query) would otherwise be served to every guest with one visitor's
+  values.
+
 ### Local fork changes (November 19, 2026, 1.6.47)
 
 * **The credential rate limit applies to Chevereto and Flarum.**  The limit
