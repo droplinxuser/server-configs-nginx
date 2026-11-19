@@ -1,3 +1,26 @@
+### Local fork changes (November 19, 2026, 1.6.47)
+
+* **The credential rate limit applies to Chevereto and Flarum.**  The limit
+  runs in the PHP location, after `try_files` has rewritten `$uri` to
+  `/index.php`.  XenForo carries the route in the arguments; Chevereto and
+  Flarum do not, so `POST /login`, `/signup`, `/account/password-forgot` and
+  `/api/token` keyed as `POST:/index.php` and only met the 30 r/s POST zone
+  (30 Chevereto login POSTs from one address: no 429).  `http.d/limit_req.conf`
+  now also matches the route list against `$request_uri`; either match puts
+  the request in the 20 r/min zone under one key.  Verified: the 12th
+  Chevereto login POST answers 429, ordinary POSTs are unaffected.
+* **Chevereto: `app/` and `importing/` are private as a whole**, as their
+  upstream `.htaccess` (`Require all denied`) intends.  Only `.po/.php/
+  .lock/.sql` were internal, so `/app/vendor/composer/installed.json`
+  (every dependency and version) and the vendor READMEs were served.
+  Public theme assets live under `content/` and are unaffected
+  (`h5bp/php_chev.conf`, `h5bp/php_chev_cache.conf`,
+  `conf.d/templates/sample_chev.conf`).
+* **`X-Original-URL` / `X-Rewrite-URL` are blanked for every PHP
+  location** (`snippets/fastcgi-php.conf`), not only Flarum's: a framework
+  that honours them routes to a path the cache key, credential limiter and
+  deny rules never saw.
+
 ### Local fork changes (November 19, 2026, 1.6.46)
 
 * **Flarum guest cache: the cacheable test is one map variable.**
