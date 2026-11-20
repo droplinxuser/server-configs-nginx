@@ -1,3 +1,18 @@
+### Local fork changes (November 20, 2026, 1.6.50)
+
+* **Reverse proxies send the site name as SNI.**  `h5bp/proxy_pass.conf` and
+  `h5bp/xf_proxy_pass.conf` set `proxy_ssl_name $proxy_host`, which is the
+  `proxy_pass` address.  A proxy vhost pointing at an origin by IP
+  (`proxy_pass https://203.0.113.5;`) therefore sent the IP literal as SNI.
+  Since 1.6.46 the origin's catch-all HTTPS server refuses unknown SNI
+  (`ssl_reject_handshake on`), so once the origin was updated every request
+  through the proxy failed with "SSL_do_handshake() failed ... tlsv1
+  unrecognized name" and the proxy answered 502 (seen on a live front-end
+  proxy: about 10,000 failed requests, mostly search-engine crawlers,
+  starting the second its origin took 1.6.49).  Both files now use
+  `proxy_ssl_name $host`, the name already sent as `Host`, so the handshake
+  reaches the origin's vhost for that site.
+
 ### Local fork changes (November 20, 2026, 1.6.49)
 
 * **Passkeys allowed for the site itself.**  `Permissions-Policy` carried
