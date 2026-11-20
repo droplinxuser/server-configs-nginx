@@ -12,6 +12,13 @@
   starting the second its origin took 1.6.49).  Both files now use
   `proxy_ssl_name $host`, the name already sent as `Host`, so the handshake
   reaches the origin's vhost for that site.
+* **Documented upstream keepalive for reverse proxies.**  `proxy_pass.conf`
+  sets HTTP/1.1 and an empty `Connection` header, but Angie only reuses an
+  origin connection through an `upstream` block with `keepalive`; a bare
+  `proxy_pass https://<IP>` opens a new TCP + TLS connection per request.
+  The file header now carries a ready-to-copy upstream example.  Measured on
+  the same front proxy (127 ms from its origin): median 0.538 s -> 0.181 s
+  per request.  `$host` SNI (above) is what makes an upstream name safe here.
 
 ### Local fork changes (November 20, 2026, 1.6.49)
 
