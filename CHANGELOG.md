@@ -1,3 +1,24 @@
+### Local fork changes (November 20, 2026, 1.6.49)
+
+* **Passkeys allowed for the site itself.**  `Permissions-Policy` carried
+  `publickey-credentials-get=()`, which denies WebAuthn to the page that
+  sends it.  Since 1.6.35 the XenForo PHP handlers re-include the header, so
+  XenForo 2.3 "Use passkey or security key" (login and two-step
+  verification) silently did nothing.  Now `publickey-credentials-get=(self)`:
+  allowed for the site, still denied to cross-origin frames.  Applies to
+  every vhost that includes `h5bp/security/permissions-policy.conf`.
+* **One copy of each security header.**  The applications send some of the
+  headers the vhost already sets, and the response carried both:
+  XenForo `X-Content-Type-Options` (every rendered page, proxy.php, oEmbed),
+  WordPress `X-Frame-Options`/`Referrer-Policy` (wp-login.php, wp-admin) and
+  `X-Content-Type-Options` (REST API), Chevereto
+  `Permissions-Policy: interest-cohort=()` (an obsolete FLoC token browsers
+  warn about).  `php_xf.conf`, `php_xf_handler.conf`, `php_xf_proxy.conf`,
+  `php_wp_handler.conf`, `php_chev_handler.conf` and `php_chev_cache.conf`
+  hide the upstream copy with `fastcgi_hide_header`; the vhost's `always`
+  header remains.  A WordPress vhost must include `h5bp/basic_headers.conf`
+  (the template does) to keep those three headers on PHP responses.
+
 ### Local fork changes (November 20, 2026, 1.6.48)
 
 * **Lean location chain: 25-39 location regexes per guest hit down to 2-4.**
