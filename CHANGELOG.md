@@ -1,3 +1,27 @@
+### Local fork changes (November 23, 2026, 1.6.54)
+
+* **Unknown cookies now bypass every guest cache (default deny).**  The
+  WordPress, XenForo, Chevereto and Flarum caches bypassed on a fixed list of
+  session cookie names and treated every other cookie as harmless.  A plugin
+  session, an SSO token or a language selector outside that list rendered a
+  personalised page that was then stored for every guest (a cross-user page
+  leak) and filled the cache with per-visitor entries.  `http.d/fastcgi_cache.conf`
+  defines `$guest_cookie_unlisted`: one PCRE pass per request (none for the
+  common no-Cookie case) that accepts only page-neutral names -- web
+  analytics, consent managers, CDN/bot-management cookies, WordPress's
+  `wordpress_test_cookie`/comment-author cookies and XenForo's CSRF and
+  key-carrying style/language cookies.  Every application decision
+  (`$skip_cache`, `$xf_guest_cacheable`, `$chev_guest_cacheable`,
+  `$flarum_guest_cacheable`) and each cache's `*_no_cache` line now includes
+  it.  A language-selector cookie (WPML, Polylang) deliberately still
+  bypasses: it changes the page until it joins the cache key.  `setup.sh`
+  1.21.61 adds the variable to XenForo lines written by older releases.
+* **Cache paths reserve filesystem headroom.**  Every shipped
+  `fastcgi_cache_path`/`proxy_cache_path` sets `min_free=512m`, so a host
+  that deploys this tree without `setup.sh` cannot let the cache manager fill
+  its filesystem.  The Chevereto zone default drops from 1 GiB to 512 MiB for
+  the same reason; `setup.sh` still sizes every zone from the host's RAM.
+
 ### Local fork changes (November 23, 2026, 1.6.53)
 
 * **PHP sees only a trusted proxy's forwarded headers.**  nginx passes every

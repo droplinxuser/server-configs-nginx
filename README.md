@@ -97,6 +97,12 @@ This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.6.12:
   The bypass decision is assembled with `map` in
   `http.d/wordpress_cache_map.conf` instead of `if` blocks. Measured on a
   16 vCPU VPS: ~242 -> ~9,972 req/s, p99 8.3 ms.
+- The guest caches (WordPress, XenForo, Chevereto, Flarum) are default-deny
+  for cookies: `$guest_cookie_unlisted` in `http.d/fastcgi_cache.conf` passes
+  only analytics/consent, CDN/bot and the applications' own page-neutral
+  guest cookies (plus the Anubis pass cookie). Any other cookie, such as a
+  plugin session or an SSO token, is rendered by PHP and never stored, so a
+  cached page cannot leak one visitor's state to another.
 - Removed the unused `scripts/install_angie.sh`; package installation is owned
   by `setup.sh`, so this repository stays limited to configuration and config
   deployment.
