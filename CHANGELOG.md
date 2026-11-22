@@ -1,3 +1,24 @@
+### Local fork changes (November 22, 2026, 1.6.51)
+
+* **Guest caches no longer store a member's page sent with a folded cookie
+  name.**  PHP turns `.`, space and `[` in a cookie name into `_`, so
+  `Cookie: xf.session=<sid>` logs a XenForo member in as
+  `$_COOKIE['xf_session']`, while the bypass map tested the literal
+  `xf_session=` and saw a guest.  Reproduced on the Xeon E-2236 audit host:
+  two requests with a member's session id under `xf.session` stored the
+  logged-in thread page, and the next cookie-less guest received it from
+  the cache (HIT, the member's account links in the page).  The same held
+  for `wordpress.logged.in_<hash>` (WordPress), `KEEP.LOGIN` (Chevereto)
+  and `flarum.session`.  Every application's cookie map now accepts any
+  separator PHP folds, and a cookie *name* that holds a percent sign always
+  bypasses as a margin (values with `%` are unaffected; on the audit host
+  `xf%5Fsession` did not log the member in).  The XenForo test no longer
+  depends on the `xf_` prefix either, so a forum with its own
+  `$config['cookie']['prefix']` (`forum_session`, `forum_user`) is treated
+  as a member instead of a cacheable guest.  Checked against the usual guest
+  cookies (`_ga`, `_hjSessionUser_*`, `ajs_user_id`, `xf_csrf`, Matomo
+  `_pk_id.*`): all still cacheable.
+
 ### Local fork changes (November 20, 2026, 1.6.50)
 
 * **Reverse proxies send the site name as SNI.**  `h5bp/proxy_pass.conf` and
