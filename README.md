@@ -278,7 +278,12 @@ nginx -s reload
 
 ## Support
 
- * Nginx v**1.8.0**+
+ * Angie 1.10+ (the tree is Angie-first: it uses Angie's `http2 on`,
+   `ssl_certificate_cache` and optional modules)
+ * nginx 1.27.4+ (older 1.25/1.26 builds reject `ssl_certificate_cache`;
+   Tengine 3.1 and Ubuntu 24.04's nginx 1.24 do not load the TLS vhosts)
+ * FreeNginx 1.31+ and OpenResty 1.29+ are close enough to nginx mainline
+   for the non-Angie modules; the setup script itself only installs Angie.
 
 
 ## Contributing

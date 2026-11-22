@@ -1,3 +1,34 @@
+### Local fork changes (November 23, 2026, 1.6.53)
+
+* **PHP sees only a trusted proxy's forwarded headers.**  nginx passes every
+  request header to FastCGI, so `X-Forwarded-Host`, `X-Forwarded-Proto`,
+  `X-Forwarded-For`, `X-Real-IP` and `Forwarded` reached the application as
+  the client sent them.  A cache MISS could render absolute URLs for an
+  attacker's host (then be stored under the clean URL), and app-level IP
+  allowlists or logs could be spoofed.  `http.d/https_map.conf` now defines
+  `$trusted_forwarder` (Unix socket, loopback, or
+  `custom.d/trusted_proxies.map`) and `$php_x_real_ip`/`$php_x_forwarded_for`;
+  `snippets/fastcgi-php-common.conf` overrides the headers with the
+  normalised host, the public port/scheme and the trusted header or the
+  direct peer, and blanks `Forwarded` / `X-HTTP-Method-Override`.  Anubis
+  (Unix socket) and a declared local terminator keep working; a client
+  reaching the origin itself cannot choose any of them.
+* **Media and headers.**  Chevereto's `/images/` location no longer sets
+  `sendfile off` (it turned the main media path into read/write copies) and
+  sets `expires off` before its `Cache-Control`, so the response no longer
+  carries two contradictory cache headers; it also keeps CORS,
+  Referrer-Policy, Permissions-Policy and X-Frame-Options.  Flarum's PHP
+  locations include `x-frame-options.conf` again, and XenForo's `/js/`,
+  `/styles/`, `/data/` locations keep CORS, Referrer-Policy,
+  Permissions-Policy and XFO after their `add_header Cache-Control`.
+* **XenForo proxy endpoints.**  `php_xf_proxy.conf` now uses
+  `fastcgi_cache_min_uses 2` and background update, so `/proxy.php` and
+  `/css.php` no longer store every unique query string on its first request
+  for an hour.
+* README support line corrected: the tree is Angie-first and needs nginx
+  1.27.4+ for `ssl_certificate_cache` (Tengine 3.1 / Ubuntu 24.04's 1.24 do
+  not load the TLS vhosts).
+
 ### Local fork changes (November 23, 2026, 1.6.52)
 
 * **One guest-cache entry per encoding, not per client header.**  The
