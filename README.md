@@ -78,7 +78,7 @@ This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.6.12:
 - `snippets/fastcgi-php.conf` is included (Angie does not ship it).
 - The safe optional configs are enabled as real `.conf` files: FastCGI cache,
   XenForo proxy/WebSocket/cache, proxy cache, per-IP rate limiting and the
-  referer map. Module-dependent snippets (Brotli, zstd, Naxsi, ngx_waf, trim,
+  referer map. Module-dependent snippets (Brotli, Naxsi, ngx_waf, trim,
   sysguard) remain disabled.
 - Rate limiting exempts loopback, uses 100 GET/s and 30 POST/HEAD/s for
   external clients, and returns `429` instead of a connection-dropping `444`.

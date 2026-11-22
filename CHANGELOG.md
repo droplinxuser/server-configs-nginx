@@ -1,3 +1,41 @@
+### Local fork changes (November 23, 2026, 1.6.52)
+
+* **One guest-cache entry per encoding, not per client header.**  The
+  responses carry `Vary: Accept-Encoding`, and Angie honoured it on top of
+  the encoding-aware key, so every distinct header string got its own copy
+  of every page: on the audit host one XenForo thread was stored three
+  times (Chrome `gzip, deflate, br, zstd`, Safari `gzip, deflate, br`,
+  Cloudflare `br, gzip`), each filled by its own PHP renders, although all
+  three receive the same gzip body.  The guest caches (XenForo,
+  `proxy.php`/`css.php`, Chevereto, Flarum, WordPress and the XenForo proxy
+  cache) now ignore `Vary` for storage; it is still sent to clients and
+  CDNs.  After the change the same thread is stored twice (gzip and plain)
+  and every gzip-capable header is a HIT on the first.
+* **The application is given exactly the key's encoding.**  Ignoring `Vary`
+  is safe only if the stored body follows the key alone.  XenForo
+  compresses whenever the header contains `gzip` (`gzip;q=0` included) and
+  PHP's `zlib.output_compression` answers `deflate`, while the key treats
+  both as plain.  A new map, `$guest_cache_ae`, passes `gzip` or nothing as
+  `HTTP_ACCEPT_ENCODING` in every cached location (for WordPress in
+  `h5bp/php_wp_handler.conf`, since a server-level `fastcgi_param` is
+  dropped by the PHP locations).  `$xf_proxy_ae` does the same for the
+  XenForo proxy cache, for cacheable guests only: members keep their
+  header, so the origin can still answer them with Brotli.  (With `Vary`
+  honoured this was never a leak: a `deflate` body only reached clients
+  that sent exactly `deflate`.)
+* **Two storage-time guards, because `Vary` is now ignored.**
+  `$guest_cache_enc_mismatch` refuses to store a body whose
+  `Content-Encoding` does not match the key, whichever location rendered it
+  (a WordPress subdirectory install served by `h5bp/php.conf` still passes
+  the raw header; verified: a `deflate` body there was never stored and the
+  next plain client got a clean page).  `$guest_cache_vary_other` refuses a
+  response that varies on anything besides `Accept-Encoding` (a mobile
+  plugin's `Vary: User-Agent`), which used to be stored per header and would
+  now be one entry for everybody.  Both are in every guest cache's
+  `*_no_cache` line.
+* **Removed `http.d/zstd_conf`.**  setup.sh no longer installs the zstd
+  module (Cloudflare asks origins for `br, gzip` only).
+
 ### Local fork changes (November 22, 2026, 1.6.51)
 
 * **Guest caches no longer store a member's page sent with a folded cookie
