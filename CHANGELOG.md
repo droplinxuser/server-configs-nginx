@@ -1,3 +1,29 @@
+### Local fork changes (November 23, 2026, 1.6.58)
+
+* **Security: a Cookie header with a control character is never
+  guest-cacheable.**  PHP strips the `isspace()` set (`\v`, `\f`) in front of
+  a cookie name.  The `$guest_cookie_unlisted` allowlist and Angie's own
+  `$cookie_*` lookup skip only space and TAB.  So `_ga=1;\vxf_language_id=2`
+  reached PHP as a language cookie while the cache key kept the default
+  language, and `\vsso_token=...` reached PHP as a login cookie that the
+  allowlist never saw.  On the test host the second request with such a
+  cookie stored its page (`MISS MISS HIT`) and the next plain guest was served
+  that copy.  The map now treats any C0 control character other than TAB,
+  or DEL, as unlisted, as its first regex, so the request bypasses the cache
+  and is never stored.  Every guest cache shares this map (WordPress,
+  XenForo FastCGI and proxy, Chevereto, Flarum).
+* **Security: the XenForo front-proxy cache never stores an origin 403 or
+  429.**  `proxy_cache_valid any 5s` shared one visitor's ban notice or rate
+  limit with every guest of that URL.  `h5bp/php_xf.conf` already refused
+  403.
+* **Security: the credential limiter counts an IPv6 client per /64.**  The
+  `limit_req_login` key was the full 16-byte address, so one VPS could rotate
+  through 2^64 buckets of 20 attempts a minute.  A `map` on
+  `$binary_remote_addr` keeps the first 8 bytes of an IPv6 address
+  (`(?s)`, `\z`).  IPv4 keeps its 4-byte key, so the two families never share
+  a bucket.  On the test host, 40 login POSTs from 40 addresses of one /64
+  were all 200 before the change; after it, attempt 12 got 429.
+
 ### Local fork changes (November 23, 2026, 1.6.57)
 
 * **Security: the XenForo front-proxy cache now default-denies unknown
