@@ -1,3 +1,29 @@
+### Local fork changes (November 23, 2026, 1.6.55)
+
+* **The Anubis era is over in the configuration too.**  Anubis support was
+  removed from `ubuntu-setup-script` in 1.21.62 (production sites sit behind
+  Cloudflare).  This tree no longer carries any Anubis-specific rule: the
+  `techaro.lol-anubis-*` alternatives left the `$guest_cookie_unlisted`
+  allowlist (a shorter pattern on every request with a Cookie header), and
+  the `unix:` peer entries left the `$app_https` and `$trusted_forwarder`
+  maps.  The maps still trust loopback (a local terminator, the loopback
+  benchmarks) and every peer declared in `custom.d/*.map`.
+* **Chevereto's front-controller redirect costs a string compare, not a
+  PCRE.**  A direct `/index.php` is not a route (the application answers 500
+  for it), so both Chevereto PHP files redirected it with
+  `if ($request_uri ~ "^/index\.php(?:[?]|$)")`.  A request Angie did not
+  rewrite has `$request_uri == "$uri$is_args$args"`, while a `try_files`
+  internal redirect keeps the original `$request_uri` and rebuilds `$uri`, so
+  the same test is now a plain string comparison in the rewrite phase.  One
+  fewer PCRE on every Chevereto request, identical behaviour (a pretty URL is
+  still never redirected).
+* **`http.d/referer_map.conf` deleted.**  It defined `$302_referer` and
+  `$302_method`, which no vhost, include or script references; setup.sh
+  retires a copy on an existing host.
+* The guest-cache regex in `http.d/fastcgi_cache.conf` is unchanged
+  otherwise: one alternation, exact matches for the common values, no PCRE
+  without a Cookie header.
+
 ### Local fork changes (November 23, 2026, 1.6.54)
 
 * **Unknown cookies now bypass every guest cache (default deny).**  The
