@@ -1,3 +1,19 @@
+### Local fork changes (November 23, 2026, 1.6.56)
+
+* **Uncached XenForo pages are compressed by Angie, not by XenForo.**
+  `h5bp/php_xf_handler.conf` (members, guest bypass, `admin.php`,
+  `job.php`) now sends PHP an empty `HTTP_ACCEPT_ENCODING`.  XenForo gzips
+  every page at level 9 inside the PHP worker when the header names gzip,
+  which was 12 % of all PHP-FPM CPU on a member thread page; Angie's Brotli
+  or gzip level 4 runs outside the pool instead.  Measured on a Xeon E-2236
+  at a pinned 3.6 GHz, 3 rotated rounds: member home 473 -> 497 req/s
+  (+5.1 %), member thread 261 -> 285 (+9.2 %), PHP CPU per thread page
+  41.6 -> 34.7 ms, p99 566 -> 503 ms; cached guest tiers unchanged.  The
+  guest-cache location keeps passing the key's encoding, so cache hits still
+  serve XenForo's stored gzip body.  Before this, the handover lived only in
+  a `src/config.php` block that `setup.sh --optimize` writes, so a forum
+  installed after the server ran XenForo's gzip for members until then.
+
 ### Local fork changes (November 23, 2026, 1.6.55)
 
 * **The Anubis era is over in the configuration too.**  Anubis support was
