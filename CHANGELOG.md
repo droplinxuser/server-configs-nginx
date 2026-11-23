@@ -1,3 +1,30 @@
+### Local fork changes (November 23, 2026, 1.6.57)
+
+* **Security: the XenForo front-proxy cache now default-denies unknown
+  cookies.**  1.6.54 added `$guest_cookie_unlisted` to every FastCGI guest
+  cache but missed `proxy_cache` in `h5bp/xf_proxy_pass.conf`.  A request
+  carrying an SSO or add-on login cookie (or a session cookie under a prefix
+  the XenForo session map does not recognise) reached the origin as a
+  member.  The origin rendered the member page without `Set-Cookie`, and
+  the proxy stored it under the guest key for 5 minutes.  Both
+  `proxy_no_cache` and `proxy_cache_bypass` now carry the allowlist and
+  `$req_encoded_path`, the same gate as `h5bp/php_xf.conf`.
+* **Security: an unknown SNI over HTTP/3 is refused like one over TCP.**
+  The catch-all `conf.d/1.https.default.conf` had only TCP listeners, so the
+  first vhost that included `h5bp/tls/http3.conf` became the QUIC default
+  server: any SNI, or none, reached a real site and its certificate.  The
+  catch-all now also owns `listen 443 quic default_server`
+  (`ssl_reject_handshake on` applies to it).  The UDP socket stays closed by
+  the firewall until an operator opens 443/udp.  Verified with an OpenSSL
+  3.5 QUIC client: an HTTP/3 vhost serves its certificate, an unknown name
+  gets none.
+* **Compressed database dumps are denied at any depth.**  Only `.sql` and
+  `.sql.gz` were blocked below the document root, so
+  `/wp-content/x.sql.zip` (or `.bz2`, `.xz`, `.zst`, `.lz4`, `.7z`) was
+  served.  The dump alternative in `security_file_access.conf` and the
+  combined WordPress, XenForo, Chevereto and Flarum rules now covers every
+  compressed `.sql` suffix.
+
 ### Local fork changes (November 23, 2026, 1.6.56)
 
 * **Uncached XenForo pages are compressed by Angie, not by XenForo.**
