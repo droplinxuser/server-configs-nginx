@@ -1,3 +1,37 @@
+### Local fork changes (November 24, 2026, 1.6.59)
+
+* **Security: an encoded XenForo style/language cookie value is never
+  guest-cacheable.**  PHP URL-decodes cookie values (`xf_language_id=%32`
+  reaches XenForo as `2`; `+2` is cast to 2), while the cache key maps read
+  Angie's raw `$cookie_*`, saw an invalid value and used the default key.  On
+  the test host the third request with such a cookie was a `HIT`: the page
+  XenForo rendered for language 2 (or style 2, or variation `alternate`) had
+  been stored under the default key for every guest of that URL, on the origin
+  and on the XenForo front proxy.  `$xf_guest_cookie` now treats a
+  `xf_style_id`/`xf_language_id` value with any byte other than a digit, and a
+  `xf_style_variation` value with any byte outside `[A-Za-z0-9_-]`, like a
+  session cookie: bypass, never stored.  Folded or re-cased names
+  (`xf.language_id`) were already unlisted.
+* **Security: WordPress refuses PHP inside plugin, theme and mu-plugin
+  `vendor/` and `node_modules/` trees.**  Bundled libraries are never entry
+  points, and PHPUnit's `eval-stdin.php` (CVE-2017-9841) still ships inside
+  plugins.  These paths reached the PHP location and ran any file that
+  existed; they now answer 403 from the WordPress deny regex.
+* **Security: WooCommerce and Easy Digital Downloads protected downloads are
+  internal-only.**  Both plugins protect paid files with an Apache
+  `.htaccess`, which Angie never reads: `/wp-content/uploads/woocommerce_uploads/`
+  and `/wp-content/uploads/edd/` were served to anyone with the URL (200 on
+  the test host).  `location ^~ … { internal; }` keeps the plugins'
+  X-Accel-Redirect download method working.
+* **Proxied backends no longer receive the client's own X-Forwarded-For.**
+  `$proxy_add_x_forwarded_for` appended to whatever the client sent, so a
+  backend that reads the left-most entry (Express with `trust proxy`, most
+  rate limiters) could be given any address.  `$proxy_x_forwarded_for`
+  extends the chain only for a trusted forwarder (`$trusted_forwarder`) and
+  otherwise sends the address Angie resolved, the policy the FastCGI path
+  already had.  Used by `proxy_pass.conf`, `xf_proxy_pass.conf`,
+  `proxy_cdn.conf`, `proxy_non_php.conf` and `proxy_ws.conf`.
+
 ### Local fork changes (November 23, 2026, 1.6.58)
 
 * **Security: a Cookie header with a control character is never
