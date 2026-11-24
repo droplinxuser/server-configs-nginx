@@ -1,0 +1,50 @@
+# https://docs.github.com/actions
+
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  config:
+    name: angie -t
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Angie and its Brotli module
+        run: |
+          . /etc/os-release
+          sudo curl -fsSL --retry 3 -o /usr/share/keyrings/angie-signing.gpg \
+            https://angie.software/keys/angie-signing.gpg
+          echo "deb [signed-by=/usr/share/keyrings/angie-signing.gpg] https://download.angie.software/angie/${ID}/${VERSION_ID} ${VERSION_CODENAME} main" \
+            | sudo tee /etc/apt/sources.list.d/angie.list
+          sudo apt-get update -q
+          sudo apt-get install -y -q angie angie-module-brotli
+          angie -V
+
+      - name: Configuration test (base tree and every vhost template)
+        run: sudo bash scripts/ci-config-test.sh
+
+  lint:
+    name: ShellCheck and addresses
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # The address check lives in the paired setup repository.
+      - uses: actions/checkout@v7
+        with:
+          repository: droplinxuser/ubuntu-setup-script
+          path: .uss
+
+      - name: No public server addresses
+        run: bash .uss/tools/check-public-ips.sh "$GITHUB_WORKSPACE"
+
+      - name: ShellCheck
+        run: shellcheck -S warning scripts/*.sh

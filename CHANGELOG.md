@@ -1,3 +1,18 @@
+### Local fork changes (November 25, 2026, 1.6.60)
+
+* **CI is back.**  The h5bp workflows tested upstream's `nginx.conf` in an
+  nginx container and were deleted on 4 November with the legacy files, so
+  no check had run on this tree since.  `.github/workflows/ci.yml` installs
+  Angie and `angie-module-brotli` from Angie's own repository on every push
+  and pull request.  It installs the tree the way ubuntu-setup-script does
+  (Brotli stanza from `http.d/brotli_conf`, a self-signed default
+  certificate) and runs `angie -t` twice: once on the base tree, then with
+  all 14 `conf.d/templates` rendered as vhosts on their own `.example`
+  hostnames and certificates.  A second job runs ShellCheck on `scripts/`
+  and the paired repository's public-address check.  The test itself is
+  `scripts/ci-config-test.sh`; `PREFIX=/some/dir` runs it beside a live
+  `/etc/angie` without touching it.
+
 ### Local fork changes (November 24, 2026, 1.6.59)
 
 * **Security: an encoded XenForo style/language cookie value is never
