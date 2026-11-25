@@ -1,3 +1,37 @@
+### Local fork changes (November 26, 2026, 1.7.1, branch `nginx`)
+
+* **No pre-compressed content: `gzip_static` and `brotli_static` removed**
+  (operator request, for ubuntu-setup-script 1.22.1).  The 1.22.1 build no
+  longer compiles `--with-http_gzip_static_module` and builds only
+  ngx_brotli's filter module (`--add-module=.../ngx_brotli/filter`), and
+  its automatic static-file precompression job is gone.  Dynamic gzip and
+  Brotli compression are unchanged.
+* `http.d/brotli_conf` no longer starts with `brotli_static off;`,
+  `h5bp/web_performance/compression.conf` no longer sets `gzip_static on;`,
+  and the commented `#gzip_static off;` lines are gone from `h5bp/xf2.conf`
+  and `conf.d/templates/sample_chev.conf`.
+* `h5bp/web_performance/pre-compressed_content_gzip.conf` and
+  `pre-compressed_content_brotli.conf` are now comment-only stubs: nothing
+  in the tree includes them, and they stay so an operator vhost that still
+  includes one keeps loading.  (ubuntu-setup-script 1.22.1 comments out a
+  live `gzip_static`/`brotli_static` line in operator vhosts with its
+  `# setup-nginx-build-off: ` marker instead of failing `nginx -t`.)
+* `scripts/ci-guards.sh` fails on any `gzip_static` or `brotli_static`
+  directive in a `.conf`/`_conf` file.  `scripts/ci-config-test.sh` still
+  requires a static ngx_brotli (`--add-module=...ngx_brotli`, which the
+  `.../ngx_brotli/filter` form matches); `scripts/ci-build-nginx.sh` header
+  updated to the new module set.  The tree is meant to load on both a
+  1.22.0 and a 1.22.1 binary.  CI checks it with `nginx -t` only on the
+  1.22.0 binary for now: `scripts/uss-ref` stays at `v1.22.0` until the
+  ubuntu-setup-script v1.22.1 tag exists (ci-guards accepts only a 40-hex
+  SHA or a v* tag).  Until then, the ci-guards directive check is what
+  covers the 1.22.1 binary.  Pin `scripts/uss-ref` to `v1.22.1` once
+  that tag exists.
+* Release order: push this tree to the `nginx` branch before
+  ubuntu-setup-script 1.22.1 reaches any host.  An older tree would sync
+  `gzip_static on;` back on every `--optimize`, and the 1.22.1 binary
+  rejects it.
+
 ### Local fork changes (November 25, 2026, 1.7.0, branch `nginx`)
 
 * **The tree for nginx built from source, for ubuntu-setup-script 1.22.0.**

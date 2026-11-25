@@ -115,7 +115,9 @@ fi
 # http.d/brotli.conf, the way ubuntu-setup-script renders it; never a
 # load_module line.  Match the configure argument itself, not any mention of
 # ngx_brotli: a dynamic build (--add-dynamic-module) names it too, and with
-# no load_module in the tree its directives would fail on every host.
+# no load_module in the tree its directives would fail on every host.  Since
+# ubuntu-setup-script 1.22.1 the argument is --add-module=.../ngx_brotli/filter
+# (the filter only; the tree has no brotli_static), which this still matches.
 if grep -qE -- '--add-dynamic-module=[^ ]*ngx_brotli' <<<"$build_args"; then
   die "the binary has ngx_brotli as a dynamic module (--add-dynamic-module); the shipped build compiles it in statically"
 fi

@@ -13,7 +13,9 @@
 #  3. The layout ubuntu-setup-script 1.22 expects: nginx.conf (not the old
 #     main file), pid /run/nginx.pid (the unit's PIDFile=), logs under
 #     /var/www/logs/nginx, and no load_module / modules-enabled (Brotli is
-#     static).
+#     static), and no gzip_static / brotli_static directive: the build
+#     compiles neither static module since ubuntu-setup-script 1.22.1, so
+#     either directive would fail nginx -t on an updated host.
 #  4. scripts/uss-ref names the ubuntu-setup-script ref CI builds nginx from:
 #     a 40-hex commit SHA or a v* tag (the v1.22 branch until the release).
 set -Eeuo pipefail
@@ -60,6 +62,9 @@ for f in "${files[@]}"; do
   [[ -f $f ]] || continue
   if grep -nH -E '^[[:space:]]*(load_module|include[[:space:]]+[^;]*modules-enabled)' "$f"; then
     bad "$f: load_module/modules-enabled (Brotli is a static module in the 1.22 build)"
+  fi
+  if grep -nH -E '^[[:space:]]*(gzip_static|brotli_static)([[:space:]]|;)' "$f"; then
+    bad "$f: gzip_static/brotli_static (neither static module is compiled in since ubuntu-setup-script 1.22.1)"
   fi
 done
 grep -qE '^[[:space:]]*pid[[:space:]]+/run/nginx\.pid;' nginx.conf || bad "nginx.conf: pid must be /run/nginx.pid (nginx.service PIDFile=, --pid-path)"

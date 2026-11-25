@@ -3,9 +3,11 @@
 # tools/nginx-build.sh in its CI mode (NGINX_BUILD_CI=1), at the
 # ubuntu-setup-script ref pinned in scripts/uss-ref.
 #
-# CI mode keeps the configure module set of the shipped build (static
-# ngx_brotli, http_v3, realip, gzip_static, threads, auth_basic, limit_req,
-# the same left-out modules) and the branding patch, and drops what only
+# CI mode keeps the configure module set of the shipped build (the static
+# ngx_brotli filter module only, --add-module=.../ngx_brotli/filter, http_v3,
+# realip, threads, auth_basic, limit_req, the same left-out modules; since
+# ubuntu-setup-script 1.22.1 neither gzip_static nor ngx_brotli's static
+# module is compiled in) and the branding patch, and drops what only
 # matters on a host or costs CI minutes: no LTO, no BOLT, no -march=native,
 # no unit, no activation.  Sharing the tool means the CI binary and the
 # fleet's binary cannot drift apart in which directives they accept.

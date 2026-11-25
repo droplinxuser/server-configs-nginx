@@ -43,9 +43,16 @@ trees is made on both branches.
   (permalinks without `/index.php`), and the value only reaches PHP.  CI
   enforces the line.  `scgi_params` and `uwsgi_params` are not shipped: the
   build leaves those modules out.  `mime.types` stays as before.
-- Brotli is compiled in statically.  `http.d/brotli_conf` holds plain
-  directives that setup.sh renders to `http.d/brotli.conf`; there is no
-  `load_module` and no `modules-enabled` directory.
+- Brotli is compiled in statically, as ngx_brotli's filter module only
+  (dynamic compression).  `http.d/brotli_conf` holds plain directives that
+  setup.sh renders to `http.d/brotli.conf`; there is no `load_module` and no
+  `modules-enabled` directory.
+- No pre-compressed files are served (since tree 1.7.1 / ubuntu-setup-script
+  1.22.1): the build compiles in neither `gzip_static` nor ngx_brotli's
+  static module, and the tree has no `gzip_static`/`brotli_static` directive
+  (CI refuses one).  gzip and Brotli compress responses on the fly.
+  `h5bp/web_performance/pre-compressed_content_{gzip,brotli}.conf` are kept
+  as empty, comment-only files so an existing include still loads.
 - Open-file and umask limits live in the `nginx.service` unit that setup.sh
   writes (`LimitNOFILE=524288`, `UMask=0027`), so the tree no longer ships a
   systemd drop-in (`scripts/limit_nofile.conf`) or an `/etc/default` file
@@ -99,7 +106,8 @@ in ubuntu-setup-script 1.22):
   password-reset submissions, 20 a minute per address after a burst of 10,
   answered with `429`; loopback is exempt.  There are no generic per-IP
   GET/POST limits and no `limit_conn` (removed in 1.6.61).
-- `gzip_static on` is enabled; pre-compressed assets are served when present.
+- Compression is dynamic only (gzip and Brotli); `gzip_static` and
+  `brotli_static` were removed in 1.7.1 with the static modules.
 - The setup.sh deployer creates the `/home/*_cache` directories owned by
   `www-data`, removes old setup.sh/pre-refactor filenames, tests and reloads.
   Set `CONFIG_SOURCE_DIR=/path` to deploy a local checkout; `CONFIG_REPO_REF`
@@ -301,10 +309,15 @@ nginx -s reload
 
  * nginx mainline 1.27.4+ as built by ubuntu-setup-script 1.22
    (`ssl_certificate_cache` needs 1.27.4; the tree also needs threads,
-   http_v2, http_v3, realip, gzip_static, auth_basic, limit_req and the
-   static ngx_brotli module).  CI builds exactly that binary with the setup
+   http_v2, http_v3, realip, auth_basic, limit_req and the static ngx_brotli
+   filter module; gzip_static and ngx_brotli's static module are not built
+   since ubuntu-setup-script 1.22.1).  CI builds exactly that binary with the setup
    repository's `tools/nginx-build.sh` in CI mode, at the ref in
    `scripts/uss-ref`, and runs `nginx -t` on the tree and every template.
+   Until the ubuntu-setup-script v1.22.1 tag exists, `scripts/uss-ref`
+   stays at `v1.22.0`, so CI tests a binary that still has the static
+   modules; `scripts/ci-guards.sh` rejects any `gzip_static`/`brotli_static`
+   directive meanwhile.
  * Distribution nginx packages (Ubuntu 24.04's 1.24) and nginx.org's packages
    are not the target: they lack Brotli or `ssl_certificate_cache`, and they
    carry modules the lean build leaves out.
