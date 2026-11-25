@@ -1,3 +1,18 @@
+### Local fork changes (November 25, 2026, 1.6.61)
+
+* **The credential limiter is the only request limit left** (operator
+  request: a lean configuration).  `http.d/limit_req.conf` keeps the login,
+  registration and password-reset zone (20 POSTs a minute per address after
+  a burst of 10, IPv6 counted per /64, loopback exempt) and drops the
+  generic per-IP zones (GET 100 r/s, POST/HEAD 30 r/s) with the
+  `$limit_req_whitelist` exemption list that existed only for them.
+  `h5bp/limit_req/_medium.conf` and `_high.conf` now hold only the
+  credential line, so every PHP location still throttles logins.  The tree
+  never used `limit_conn`.  WordPress has no login throttling of its own, so
+  the credential zone stays.  ubuntu-setup-script 1.21.71 stops sizing the
+  removed zones, ignores `SETUP_LIMIT_REQ_EXEMPT`, and its compiled Angie now
+  builds `auth_basic` in and leaves `limit_conn` out.
+
 ### Local fork changes (November 25, 2026, 1.6.60)
 
 * **CI is back.**  The h5bp workflows tested upstream's `nginx.conf` in an

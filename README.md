@@ -77,13 +77,13 @@ This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.6.12:
 - TLS session tickets and 0-RTT early data are disabled by default.
 - `snippets/fastcgi-php.conf` is included (Angie does not ship it).
 - The safe optional configs are enabled as real `.conf` files: FastCGI cache,
-  XenForo proxy/WebSocket/cache, proxy cache, per-IP rate limiting and the
-  referer map. Module-dependent snippets (Brotli, Naxsi, ngx_waf, trim,
+  XenForo proxy/WebSocket/cache, proxy cache, the credential limiter and
+  the referer map. Module-dependent snippets (Brotli, Naxsi, ngx_waf, trim,
   sysguard) remain disabled.
-- Rate limiting exempts loopback, uses 100 GET/s and 30 POST/HEAD/s for
-  external clients, and returns `429` instead of a connection-dropping `444`.
-  Login, registration and password-reset submissions have their own zone:
-  20 a minute per address after a burst of 10.
+- The only request limit is the credential limiter: login, registration and
+  password-reset submissions, 20 a minute per address after a burst of 10,
+  answered with `429`; loopback is exempt.  There are no generic per-IP
+  GET/POST limits and no `limit_conn` (removed in 1.6.61).
 - `gzip_static on` is enabled; pre-compressed assets are served when present.
 - The setup.sh deployer creates the `/home/*_cache` directories owned by
   `www-data`, removes old setup.sh/pre-refactor filenames, tests and reloads.
