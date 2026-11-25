@@ -50,8 +50,33 @@ jobs:
           sudo apt-get install -y -q build-essential cmake perl curl ca-certificates \
             gnupg xz-utils libssl-dev libpcre2-dev zlib1g-dev libbrotli-dev
 
-      - name: Build nginx (tools/nginx-build.sh, NGINX_BUILD_CI=1)
-        run: sudo bash scripts/ci-build-nginx.sh .uss "$RUNNER_TEMP/nginx-ci"
+      # Downloaded source tarballs (nginx, OpenSSL, PCRE2, zlib-ng, Brotli,
+      # ngx_brotli) and their first-use pins.  The key changes whenever the
+      # pinned ubuntu-setup-script ref, its version file or the build tool
+      # changes, so a cache never outlives the recipe that filled it; with
+      # "latest" versions the tool still downloads a newer release into it.
+      - name: Source cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/nginx-src-cache
+          key: nginx-src-${{ runner.os }}-${{ steps.uss.outputs.ref }}-${{ hashFiles('.uss/nginx-build.conf', '.uss/tools/nginx-build.sh') }}
+
+      - name: Build nginx (tools/nginx-build.sh build-only, NGINX_BUILD_CI=1)
+        run: |
+          sudo NGINX_BUILD_CACHE="$RUNNER_TEMP/nginx-src-cache" \
+            bash scripts/ci-build-nginx.sh .uss "$RUNNER_TEMP/nginx-ci"
+
+      # The build runs as root and leaves the cache mode 0700; actions/cache
+      # saves it as the runner user in the post step.  Build work directories
+      # are not worth caching.
+      - name: Hand the source cache back to the runner user
+        if: always()
+        run: |
+          c="$RUNNER_TEMP/nginx-src-cache"
+          if [ -d "$c" ]; then
+            sudo rm -rf "$c"/build.* "$c"/bolt.*
+            sudo chown -R "$(id -u):$(id -g)" "$c"
+          fi
 
       - name: Configuration test (base tree, every vhost template, branding)
         run: |

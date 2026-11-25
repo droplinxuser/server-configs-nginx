@@ -9,8 +9,9 @@ set -Eeuo pipefail
 umask 022
 
 readonly CLOUDFLARE_FILE_PATH=/etc/nginx/http.d/cloudflare.conf
-# Absolute paths: cron's PATH has neither /usr/local/sbin nor the build root,
-# and /usr/sbin/nginx is not ours (a distro package path).
+# The compiled binary in its build root, by absolute path: cron's PATH
+# (/usr/bin:/bin) lacks /usr/local/sbin, and the build-root binary is the one
+# the unit runs, whatever links point at it.
 readonly NGINX_BIN=/usr/local/lib/setup-nginx/sbin/nginx
 readonly NGINX_CONF=/etc/nginx/nginx.conf
 [[ -x $NGINX_BIN ]] || { echo "ERROR: $NGINX_BIN not found; nothing changed" >&2; exit 1; }

@@ -10,11 +10,19 @@
 # no unit, no activation.  Sharing the tool means the CI binary and the
 # fleet's binary cannot drift apart in which directives they accept.
 #
+# The binary's path is whatever the tool says it is: `build-only` prints the
+# verified binary's path as the last line of stdout (its build output goes
+# to stderr).  Guessing a layout here, or searching the build root for a
+# file named nginx, could test a stale or unverified binary after the tool
+# changes where it stages.
+#
 # Usage (root, on a throwaway runner):
 #   ci-build-nginx.sh USS_DIR OUT_DIR
 #     USS_DIR  checkout of ubuntu-setup-script at the pinned ref
 #     OUT_DIR  build root (NGINX_BUILD_ROOT); the binary's path is printed
 #              on the last line and written to OUT_DIR/nginx-bin.path
+#   NGINX_BUILD_CACHE  source/download cache (default OUT_DIR/cache); CI
+#                      points it at the directory actions/cache restores.
 set -Eeuo pipefail
 
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
@@ -36,26 +44,14 @@ if [[ -f $USS/nginx-build.conf ]]; then
   export NGINX_BUILD_CONF=$USS/nginx-build.conf
 fi
 
-if ! bash "$TOOL" build; then
-  # The tool keeps its logs under ROOT/logs (1.22); show the end of the newest.
-  log=$(find "$OUT" -type f -name '*.log' -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -n 1 | cut -d' ' -f2-)
-  if [[ -n $log ]]; then
-    printf '%s\n' "--- tail of ${log}" >&2
-    tail -n 80 "$log" >&2 || true
-  fi
-  die "tools/nginx-build.sh build failed (NGINX_BUILD_CI=1)"
+# The tool prints the tail of the failing step's log and its path itself.
+if ! out=$(bash "$TOOL" build-only); then
+  die "tools/nginx-build.sh build-only failed (NGINX_BUILD_CI=1; logs under ${OUT}/logs)"
 fi
+bin=$(printf '%s\n' "$out" | tail -n 1)
 
-# Where the verified binary lands: the staging slot of the build-only step,
-# else the installed slot; any other layout is searched for as a last resort.
-bin=""
-for c in "$OUT/staging/sbin/nginx" "$OUT/sbin/nginx" "$OUT/build/nginx"; do
-  if [[ -x $c && ! -L $c ]]; then bin=$c; break; fi
-done
-if [[ -z $bin ]]; then
-  bin=$(find "$OUT" -path "$OUT/cache" -prune -o -type f -name nginx -perm -u+x -print 2>/dev/null | head -n 1)
-fi
-[[ -n $bin ]] || die "the build finished but no nginx binary was found under ${OUT}"
+[[ $bin == "$OUT"/* ]] || die "tools/nginx-build.sh printed '${bin}', not a path under ${OUT}"
+[[ -f $bin && -x $bin && ! -L $bin ]] || die "tools/nginx-build.sh printed '${bin}', which is not an executable file"
 "$bin" -V >/dev/null 2>&1 || die "${bin} -V failed"
 printf '%s\n' "$bin" > "$OUT/nginx-bin.path"
 printf '%s\n' "$bin"

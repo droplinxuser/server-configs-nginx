@@ -14,7 +14,8 @@
 #     main file), pid /run/nginx.pid (the unit's PIDFile=), logs under
 #     /var/www/logs/nginx, and no load_module / modules-enabled (Brotli is
 #     static).
-#  4. scripts/uss-ref names the ubuntu-setup-script ref CI builds nginx from.
+#  4. scripts/uss-ref names the ubuntu-setup-script ref CI builds nginx from:
+#     a 40-hex commit SHA or a v* tag (the v1.22 branch until the release).
 set -Eeuo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
@@ -67,8 +68,24 @@ grep -qE '^[[:space:]]*error_log[[:space:]]+/var/www/logs/nginx/' nginx.conf || 
 # 4. Pinned ubuntu-setup-script ref.
 if [[ ! -s scripts/uss-ref ]]; then
   bad "scripts/uss-ref is missing or empty"
-elif ! grep -qE '^[A-Za-z0-9._/-]+$' scripts/uss-ref; then
-  bad "scripts/uss-ref must hold one ref (branch, tag or commit) on one line"
+else
+  # An immutable ref only: a full commit SHA or a release tag (v*).  A branch
+  # moves under CI, so a green run would not say which build was tested.
+  # The workflow strips all whitespace; only surrounding whitespace is
+  # tolerated here, so "v1.22 x" cannot pass as the tag "v1.22x".
+  uss_ref=$(grep -m1 . scripts/uss-ref)
+  uss_ref=${uss_ref#"${uss_ref%%[![:space:]]*}"}
+  uss_ref=${uss_ref%"${uss_ref##*[![:space:]]}"}
+  if [[ $(grep -c . scripts/uss-ref) != 1 ]]; then
+    bad "scripts/uss-ref must hold exactly one ref on one line"
+  elif [[ $uss_ref == v1.22 ]]; then
+    # TODO(1.22.0 release): drop this exception and pin scripts/uss-ref to the
+    # release tag (or its commit) once ubuntu-setup-script 1.22.0 is tagged;
+    # until then CI builds from the 1.22 development branch.
+    printf 'GUARD: note: scripts/uss-ref is the development branch v1.22 (allowed until the 1.22.0 release)\n' >&2
+  elif ! [[ $uss_ref =~ ^[0-9a-f]{40}$ || $uss_ref =~ ^v[0-9][A-Za-z0-9._-]*$ ]]; then
+    bad "scripts/uss-ref must be a 40-character commit SHA or a v* release tag (found '${uss_ref}')"
+  fi
 fi
 
 if [[ $fail != 0 ]]; then exit 1; fi

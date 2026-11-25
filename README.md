@@ -26,8 +26,9 @@ own PHP-FPM config.
 `main` stays the Angie tree until every host runs ubuntu-setup-script 1.22:
 1.21.x fetches `main` by default and refuses a tree without `angie.conf`, so
 changing `main` first would break every host that has not migrated yet.
-Hosts that stay on 1.21.x can pin `CONFIG_REPO_REF` to the last Angie commit
-or tag.  Once the whole fleet runs 1.22, merging `nginx` into `main` is a
+The last Angie tree is frozen as the tag `angie-final`: hosts that stay on
+1.21.x should run with `CONFIG_REPO_REF=angie-final`, so they keep working
+whatever happens to `main` later.  Once the whole fleet runs 1.22, merging `nginx` into `main` is a
 manual operator step, never automatic; until then a fix that applies to both
 trees is made on both branches.
 
@@ -51,8 +52,9 @@ trees is made on both branches.
   (`scripts/etc_default_nginx`).
 - `scripts/cloudflare.sh` (run from cron) rewrites
   `/etc/nginx/http.d/cloudflare.conf`, tests it with the compiled binary
-  (`/usr/local/lib/setup-nginx/sbin/nginx -t`) and reloads a running
-  `nginx.service`.
+  (`/usr/local/lib/setup-nginx/sbin/nginx -t`, the build-root binary by
+  absolute path because cron's PATH has no `/usr/local/sbin`) and reloads a
+  running `nginx.service`.
 - TLS: the default and catch-all servers use the host's self-signed origin
   certificate in `/etc/nginx/ssl/default` (Cloudflare Full mode).
   Open-source nginx has no built-in ACME client of Angie's kind; the 1.22

@@ -22,11 +22,17 @@
 #   NGINX_BIN       the nginx binary to test (required).
 #   PREFIX          where the tree goes (default /etc/nginx).  Another prefix
 #                   leaves a live /etc/nginx alone: every /etc/nginx path in
-#                   the copy is rewritten to it.  An existing non-empty
-#                   PREFIX is only replaced in CI (CI=true) or with FORCE=1.
+#                   the copy is rewritten to it.  PREFIX is deleted and
+#                   recreated, so after canonicalisation (symlinks and ..
+#                   resolved) it must be exactly /etc/nginx or a directory
+#                   below /tmp or below $RUNNER_TEMP, and may not contain or
+#                   sit inside this checkout.  An existing non-empty PREFIX
+#                   is only replaced in CI (CI=true) or with FORCE=1.
 #   SKIP_TEMPLATES=1  test only the base tree.
 #   REQUIRE_BROTLI=0  allow a binary without the static ngx_brotli module
 #                     (brotli.conf is then left out); CI keeps the default 1.
+#                     A dynamic ngx_brotli (--add-dynamic-module) is always
+#                     refused: the tree has no load_module line.
 #   SKIP_BRANDING=1   skip the 404 branding check.
 set -Eeuo pipefail
 
@@ -56,9 +62,32 @@ selfsigned() { # dir cn
 build_args=$("$NGINX_BIN" -V 2>&1)
 printf '%s\n' "$build_args" | sed 's/^/    /'
 
-case $PREFIX in
-  /|/etc|/usr|/usr/*|/var|/home|/root) die "PREFIX=${PREFIX} is not a tree directory" ;;
-esac
+# PREFIX is removed with rm -rf below, so it is checked against an
+# allow-list after canonicalisation, not a deny-list of system paths: a
+# deny-list misses /etc/nginx/.., /opt, a symlink to /, or a typo that lands
+# on a live directory.
+[[ $PREFIX =~ ^/[A-Za-z0-9._/-]*$ ]] \
+  || die "PREFIX=${PREFIX} must be an absolute path of letters, digits, '.', '_', '-' and '/' (it is also a sed replacement)"
+PREFIX=$(realpath -m -- "$PREFIX") || die "cannot canonicalise PREFIX=${PREFIX}"
+under() { # PATH DIR: PATH is strictly below DIR
+  [[ -n $2 && $1 == "${2%/}"/?* ]]
+}
+prefix_ok=0
+if [[ $PREFIX == /etc/nginx ]] || under "$PREFIX" /tmp; then
+  prefix_ok=1
+elif [[ -n ${RUNNER_TEMP:-} ]]; then
+  runner_temp=$(realpath -m -- "$RUNNER_TEMP") || runner_temp=""
+  if [[ $runner_temp == /?* ]] && under "$PREFIX" "$runner_temp"; then prefix_ok=1; fi
+fi
+[[ $prefix_ok == 1 ]] \
+  || die "PREFIX=${PREFIX} is not allowed: use /etc/nginx, a directory below /tmp, or one below \$RUNNER_TEMP"
+# Never delete the checkout under test or the staging copy.
+for keep in "$TREE" "$WORK"; do
+  keep=$(realpath -m -- "$keep")
+  if [[ $PREFIX == "$keep" ]] || under "$PREFIX" "$keep" || under "$keep" "$PREFIX"; then
+    die "PREFIX=${PREFIX} overlaps ${keep}"
+  fi
+done
 if [[ -d $PREFIX && -n $(ls -A "$PREFIX" 2>/dev/null) ]] \
   && [[ ${CI:-} != true && ${FORCE:-0} != 1 ]]; then
   die "${PREFIX} is not empty; refusing to replace a live tree (use PREFIX=/tmp/scn-test, or FORCE=1)"
@@ -84,8 +113,13 @@ fi
 
 # Brotli is a static module (--add-module): plain directives in
 # http.d/brotli.conf, the way ubuntu-setup-script renders it; never a
-# load_module line.
-if grep -q 'ngx_brotli' <<<"$build_args"; then
+# load_module line.  Match the configure argument itself, not any mention of
+# ngx_brotli: a dynamic build (--add-dynamic-module) names it too, and with
+# no load_module in the tree its directives would fail on every host.
+if grep -qE -- '--add-dynamic-module=[^ ]*ngx_brotli' <<<"$build_args"; then
+  die "the binary has ngx_brotli as a dynamic module (--add-dynamic-module); the shipped build compiles it in statically"
+fi
+if grep -qE -- '--add-module=[^ ]*ngx_brotli' <<<"$build_args"; then
   cp "$PREFIX"/http.d/brotli_conf "$PREFIX"/http.d/brotli.conf
 elif [[ ${REQUIRE_BROTLI:-1} == 1 ]]; then
   die "the binary has no static ngx_brotli (--add-module); the shipped build always has it"
