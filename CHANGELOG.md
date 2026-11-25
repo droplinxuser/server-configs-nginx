@@ -1,3 +1,22 @@
+### Local fork changes (November 26, 2026, 1.7.3)
+
+* **Security: XenForo guest-cache poisoning with a zero-padded style or
+  language cookie.**  XenForo casts `xf_language_id=0000002` to 2, but the
+  key maps accepted only 1-6 digits, so a 7-character value fell to the
+  default key: three such requests stored a language-2 (or style-2) page
+  that every cookieless guest then received for the cache TTL (reproduced on
+  the 1.22.2 audit host: the next guest got HIT on the poisoned entry).
+  `$xf_key_style`/`$xf_key_language` now strip leading zeros (`0000002` and
+  `2` share one entry), and a value with more than six significant digits
+  bypasses the cache (`$xf_guest_cookie`).  Regression tests: the
+  guest-cache cookie suite and ubuntu-setup-script's unit suite.
+* **Security: CDN proxy cache key.**  `h5bp/proxy_cdn.conf` keyed on the
+  decoded `$uri`, while `proxy_pass $cdn_origin` forwards the raw request
+  line, so `/proxy.php%3Fimage=x` (a 403/404 at the origin) shared the key
+  of `/proxy.php?image=x` and blanked that public URL for the error TTL (up
+  to 1 h).  The key is now `$scheme|$host|$request_method|$request_uri`.
+  Cached CDN objects are re-fetched once under the new key.
+
 ### Local fork changes (November 26, 2026, 1.7.2)
 
 * **One branch.**  The nginx tree moved from the `nginx` branch to `main`
