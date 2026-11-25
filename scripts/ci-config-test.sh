@@ -1,25 +1,48 @@
 #!/usr/bin/env bash
 # Configuration test for this tree, as CI runs it.
 #
-# Installs the tree the way ubuntu-setup-script does (Brotli stanza from
-# http.d/brotli_conf, a self-signed default certificate), renders every
-# vhost template under conf.d/templates with its own test hostname and
-# certificate, and runs `angie -t`.  Run as root on a throwaway machine
-# (a CI runner) with Angie and angie-module-brotli installed.
+# Installs the tree the way ubuntu-setup-script 1.22 does (nginx.conf and the
+# tree's own fastcgi.conf/fastcgi_params into /etc/nginx, the Brotli stanza
+# from http.d/brotli_conf as plain directives, a self-signed default
+# certificate, the tmpfiles directories), renders every vhost template under
+# conf.d/templates with its own test hostname and certificate, and runs
+# `nginx -t` on the base tree and again with all templates.  Then it starts
+# the binary on 127.0.0.1 with a throwaway configuration and checks that a 404
+# names nginx in neither the headers nor the body (the build's branding patch).
 #
-#   PREFIX   where the tree goes (default /etc/angie).  Another prefix
-#            leaves a live /etc/angie alone: every /etc/angie path in the
-#            copy is rewritten to it.
+# The binary is the one ubuntu-setup-script ships, built by
+# scripts/ci-build-nginx.sh (tools/nginx-build.sh with NGINX_BUILD_CI=1: the
+# same configure module set, no LTO/BOLT/-march=native).  nginx.org's package
+# would test the wrong binary: it has no Brotli and carries the modules the
+# lean build leaves out (ssi, limit_conn, autoindex, scgi, uwsgi, ...), so a
+# template using one of those would pass here and fail on every host.
+#
+# Run as root on a throwaway machine (a CI runner).
+#
+#   NGINX_BIN       the nginx binary to test (required).
+#   PREFIX          where the tree goes (default /etc/nginx).  Another prefix
+#                   leaves a live /etc/nginx alone: every /etc/nginx path in
+#                   the copy is rewritten to it.  An existing non-empty
+#                   PREFIX is only replaced in CI (CI=true) or with FORCE=1.
 #   SKIP_TEMPLATES=1  test only the base tree.
+#   REQUIRE_BROTLI=0  allow a binary without the static ngx_brotli module
+#                     (brotli.conf is then left out); CI keeps the default 1.
+#   SKIP_BRANDING=1   skip the 404 branding check.
 set -Eeuo pipefail
 
 TREE=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-PREFIX=${PREFIX:-/etc/angie}
-ANGIE=${ANGIE:-angie}
+PREFIX=${PREFIX:-/etc/nginx}
+NGINX_BIN=${NGINX_BIN:-}
 WORK=$(mktemp -d)
-trap 'rm -rf "${WORK:?}"' EXIT
+BRAND_PID=""
+cleanup() {
+  if [[ -n $BRAND_PID ]]; then kill -QUIT "$BRAND_PID" 2>/dev/null || true; fi
+  rm -rf "${WORK:?}"
+}
+trap cleanup EXIT
 
 say() { printf '==> %s\n' "$*"; }
+die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 
 selfsigned() { # dir cn
   mkdir -p "$1"
@@ -28,67 +51,122 @@ selfsigned() { # dir cn
     >/dev/null 2>&1
 }
 
+[[ $EUID -eq 0 ]] || die "run as root (the tree goes to ${PREFIX} and nginx -t opens /var/www/logs/nginx)"
+[[ -n $NGINX_BIN && -x $NGINX_BIN ]] || die "NGINX_BIN must name an executable nginx (scripts/ci-build-nginx.sh prints it)"
+build_args=$("$NGINX_BIN" -V 2>&1)
+printf '%s\n' "$build_args" | sed 's/^/    /'
+
+case $PREFIX in
+  /|/etc|/usr|/usr/*|/var|/home|/root) die "PREFIX=${PREFIX} is not a tree directory" ;;
+esac
+if [[ -d $PREFIX && -n $(ls -A "$PREFIX" 2>/dev/null) ]] \
+  && [[ ${CI:-} != true && ${FORCE:-0} != 1 ]]; then
+  die "${PREFIX} is not empty; refusing to replace a live tree (use PREFIX=/tmp/scn-test, or FORCE=1)"
+fi
+
 say "installing the tree into ${PREFIX}"
-# The package's parameter files (fastcgi.conf, fastcgi_params, ...) stay, as
-# on a real install; the tree replaces everything else.
+# Everything comes from this tree, the FastCGI parameter files included: a
+# source build installs no package files, and the tree's copies carry
+# SERVER_SOFTWARE "nginx" without a version (scripts/ci-guards.sh).
 stage=$WORK/stage
 mkdir -p "$stage"
-find /etc/angie -maxdepth 1 -type f \( -name '*params' -o -name 'fastcgi.conf' \) \
-  -exec cp -a {} "$stage"/ \;
-cp -a "$TREE"/angie.conf "$TREE"/mime.types "$TREE"/conf.d "$TREE"/h5bp \
-  "$TREE"/http.d "$TREE"/snippets "$stage"/
-[[ -f $stage/fastcgi.conf ]] || { echo "no fastcgi.conf from the Angie package" >&2; exit 1; }
-if [[ $PREFIX == /etc/angie ]]; then
-  find /etc/angie -mindepth 1 -maxdepth 1 ! -name modules ! -name modules-enabled \
-    -exec rm -rf {} +
-else
-  rm -rf "${PREFIX:?}"
-fi
+cp -a "$TREE"/nginx.conf "$TREE"/mime.types "$TREE"/fastcgi.conf "$TREE"/fastcgi_params \
+  "$TREE"/conf.d "$TREE"/h5bp "$TREE"/http.d "$TREE"/snippets "$stage"/
+rm -rf "${PREFIX:?}"
 mkdir -p "$PREFIX"
 cp -a "$stage"/. "$PREFIX"/
-mkdir -p "$PREFIX"/custom.d "$PREFIX"/modules-enabled
-if [[ $PREFIX != /etc/angie ]]; then
-  grep -rlF /etc/angie "$PREFIX" | while IFS= read -r f; do
-    sed -i "s#/etc/angie#${PREFIX}#g" "$f"
+mkdir -p "$PREFIX"/custom.d
+if [[ $PREFIX != /etc/nginx ]]; then
+  grep -rlF /etc/nginx "$PREFIX" | while IFS= read -r f; do
+    sed -i "s#/etc/nginx#${PREFIX}#g" "$f"
   done
 fi
 
-# Dynamic Brotli, the way setup.sh writes it (modules-enabled/50-brotli.conf).
-mod_dir=$(dirname "$(find /usr/lib/angie/modules /usr/lib64/angie/modules \
-  -name 'ngx_http_brotli_filter_module.so' 2>/dev/null | head -n 1)")
-if [[ -f $PREFIX/http.d/brotli_conf && -n $mod_dir && $mod_dir != . ]]; then
-  {
-    printf 'load_module %s/ngx_http_brotli_filter_module.so;\n' "$mod_dir"
-    printf 'load_module %s/ngx_http_brotli_static_module.so;\n' "$mod_dir"
-  } > "$PREFIX"/modules-enabled/50-brotli.conf
+# Brotli is a static module (--add-module): plain directives in
+# http.d/brotli.conf, the way ubuntu-setup-script renders it; never a
+# load_module line.
+if grep -q 'ngx_brotli' <<<"$build_args"; then
   cp "$PREFIX"/http.d/brotli_conf "$PREFIX"/http.d/brotli.conf
+elif [[ ${REQUIRE_BROTLI:-1} == 1 ]]; then
+  die "the binary has no static ngx_brotli (--add-module); the shipped build always has it"
 else
-  echo "angie-module-brotli is missing" >&2
-  exit 1
+  say "no ngx_brotli in this binary: http.d/brotli.conf left out (REQUIRE_BROTLI=0)"
 fi
 
-mkdir -p /var/www/logs/angie /home/nginx_cache /home/nginx_cache_chev \
-  /home/proxy_cache /home/proxy_cdn /home/xf_proxy_cache /var/lib/php
+# What tmpfiles.d/setup-nginx.conf creates on a host: the compiled-in temp
+# paths (--http-*-temp-path) and the log directory.
+install -d -m 0700 -o www-data -g www-data /var/cache/nginx
+for t in client fastcgi proxy scgi uwsgi; do
+  install -d -m 0700 -o www-data -g www-data "/var/cache/nginx/${t}_temp"
+done
+install -d -m 0750 -o www-data -g www-data /var/www/logs/nginx
+mkdir -p /home/nginx_cache /home/nginx_cache_chev /home/proxy_cache \
+  /home/proxy_cdn /home/xf_proxy_cache /var/lib/php
 selfsigned "$PREFIX"/ssl/default localhost
 
-say "base tree: ${ANGIE} -t"
-"$ANGIE" -t -c "$PREFIX"/angie.conf
+say "base tree: nginx -t"
+"$NGINX_BIN" -t -c "$PREFIX"/nginx.conf
 
-if [[ ${SKIP_TEMPLATES:-0} == 1 ]]; then exit 0; fi
+if [[ ${SKIP_TEMPLATES:-0} != 1 ]]; then
+  # Each template becomes one vhost on its own hostname.  domain.com is the
+  # templates' placeholder; site-N.example are reserved names (RFC 2606).
+  n=0
+  for t in "$TREE"/conf.d/templates/*.conf; do
+    n=$((n + 1))
+    host="site-${n}.example"
+    name=$(basename "$t" .conf)
+    sed -e "s/domain\\.com/${host}/g" -e "s/example\\.com/${host}/g" \
+      -e "s#/etc/nginx#${PREFIX}#g" "$t" > "$PREFIX/conf.d/zz-ci-${name}.conf"
+    selfsigned "/etc/letsencrypt/live/${host}" "$host"
+    mkdir -p "/var/www/${host}/public" "/var/www/cdn.${host}/public" \
+      "/var/www/cp.${host}"
+  done
+  say "${n} templates as vhosts: nginx -t"
+  "$NGINX_BIN" -t -c "$PREFIX"/nginx.conf
+fi
 
-# Each template becomes one vhost on its own hostname.  domain.com is the
-# templates' placeholder; site-N.example are reserved names (RFC 2606).
-n=0
-for t in "$TREE"/conf.d/templates/*.conf; do
-  n=$((n + 1))
-  host="site-${n}.example"
-  name=$(basename "$t" .conf)
-  sed -e "s/domain\\.com/${host}/g" -e "s/example\\.com/${host}/g" \
-    -e "s#/etc/angie#${PREFIX}#g" "$t" > "$PREFIX/conf.d/zz-ci-${name}.conf"
-  selfsigned "/etc/letsencrypt/live/${host}" "$host"
-  mkdir -p "/var/www/${host}/public" "/var/www/cdn.${host}/public" \
-    "/var/www/cp.${host}"
-done
-say "${n} templates as vhosts: ${ANGIE} -t"
-"$ANGIE" -t -c "$PREFIX"/angie.conf
+if [[ ${SKIP_BRANDING:-0} != 1 ]]; then
+  # The build patches out the default Server header (HTTP/1, HTTP/2, HTTP/3)
+  # and the "<hr><center>nginx</center>" error-page tail.  server_tokens is
+  # left at its default (on) here on purpose: an unpatched binary would then
+  # send "Server: nginx/<version>".  Only HTTP/1.1 is probed (no TLS here).
+  say "branding: a 404 must not name nginx"
+  bd=$WORK/brand
+  mkdir -p "$bd"
+  port=$(( 20000 + RANDOM % 20000 ))
+  cat > "$bd/nginx.conf" <<EOF
+worker_processes 1;
+pid $bd/nginx.pid;
+error_log $bd/error.log warn;
+events { worker_connections 64; }
+http {
+  access_log off;
+  client_body_temp_path $bd/client;
+  proxy_temp_path $bd/proxy;
+  fastcgi_temp_path $bd/fastcgi;
+  server {
+    listen 127.0.0.1:${port};
+    location / { return 404; }
+  }
+}
+EOF
+  "$NGINX_BIN" -p "$bd" -c "$bd/nginx.conf"
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    [[ -s $bd/nginx.pid ]] && break
+    sleep 0.5
+  done
+  if [[ ! -s $bd/nginx.pid ]]; then
+    cat "$bd/error.log" >&2 || true
+    die "the branding test server did not start"
+  fi
+  BRAND_PID=$(cat "$bd/nginx.pid")
+  resp=$(curl -sS -i --max-time 10 "http://127.0.0.1:${port}/ci-missing")
+  printf '%s\n' "$resp" | sed 's/^/    /'
+  grep -q '^HTTP/[0-9.]* 404' <<<"$resp" || die "expected a 404 from the branding test server"
+  if grep -qi 'nginx' <<<"$resp"; then
+    die "the 404 names nginx (Server header or error-page footer): the branding patch is missing from this build"
+  fi
+  kill -QUIT "$BRAND_PID" 2>/dev/null || true
+  BRAND_PID=""
+fi
 say "OK"

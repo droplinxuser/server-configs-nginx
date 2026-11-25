@@ -7,54 +7,67 @@ accessible, if needed, even cross-domain.
 
 ## Scope
 
-This repository intentionally contains only **Angie/Nginx** configuration.
+This repository intentionally contains only **nginx** configuration.
 PHP-FPM, server/system, MariaDB, Valkey and Elasticsearch configuration and
 config-diff tooling live in
 [`droplinxuser/ubuntu-setup-script`](https://github.com/droplinxuser/ubuntu-setup-script).
-`setup.sh` in
-[`droplinxuser/ubuntu-setup-script`](https://github.com/droplinxuser/ubuntu-setup-script)
-syncs this Angie tree into `/etc/angie`; this repository no longer ships a
-deployer script and does not own PHP-FPM config.
+`setup.sh` there (1.22.0 and later) compiles nginx mainline from source
+(binary under `/usr/local/lib/setup-nginx`, unit `nginx.service`) and syncs
+this tree into `/etc/nginx`; this repository ships no deployer and does not
+own PHP-FPM config.
 
-## Angie built-in ACME
+## Branches
 
-Angie packages include `http_acme_module`. To replace Certbot:
+| Branch | Tree | Used by |
+|---|---|---|
+| `nginx` | nginx built from source, `/etc/nginx`, logs in `/var/www/logs/nginx` | ubuntu-setup-script 1.22.0+ (`CONFIG_REPO_REF`) |
+| `main` | the previous Angie tree (`angie.conf`, `/etc/angie`) | ubuntu-setup-script 1.21.x |
 
-1. Enable a client in the `http` context (the repository ships
-   `http.d/letsencrypt_conf` as a disabled sample; rename it to
-   `http.d/letsencrypt.conf` or create that file):
-   ```nginx
-   acme_client letsencrypt https://acme-v02.api.letsencrypt.org/directory;
-   ```
-2. Keep the resolver pointing at a working stub/recursor. On Ubuntu with
-   systemd-resolved use `resolver 127.0.0.53 1.1.1.1 8.8.8.8 valid=1d;`.
-3. Add an HTTP :80 server for the names so HTTP-01 challenges are reachable:
-   ```nginx
-   server {
-       listen 80;
-       listen [::]:80;
-       server_name example.com www.example.com;
-       acme letsencrypt;
-       location / { return 301 https://$host$request_uri; }
-   }
-   ```
-4. Use the ACME variables in the HTTPS server:
-   ```nginx
-   acme letsencrypt;
-   ssl_certificate     $acme_cert_letsencrypt;
-   ssl_certificate_key $acme_cert_key_letsencrypt;
-   ```
-5. Test and reload with `angie -t && systemctl reload angie`. Angie stores and
-   renews the certificate under `/var/lib/angie/acme/letsencrypt/`.
+`main` stays the Angie tree until every host runs ubuntu-setup-script 1.22:
+1.21.x fetches `main` by default and refuses a tree without `angie.conf`, so
+changing `main` first would break every host that has not migrated yet.
+Hosts that stay on 1.21.x can pin `CONFIG_REPO_REF` to the last Angie commit
+or tag.  Once the whole fleet runs 1.22, merging `nginx` into `main` is a
+manual operator step, never automatic; until then a fix that applies to both
+trees is made on both branches.
+
+## Layout on a host (1.22)
+
+- `/etc/nginx/nginx.conf` is the main file.  `pid /run/nginx.pid` matches the
+  build's `--pid-path` and the unit's `PIDFile=`; errors go to
+  `/var/www/logs/nginx/error.log`.
+- `fastcgi.conf` and `fastcgi_params` are shipped by the tree, because a
+  source build installs only the binary.  They are upstream's files with
+  `SERVER_SOFTWARE nginx` (no version): WordPress detects nginx through it
+  (permalinks without `/index.php`), and the value only reaches PHP.  CI
+  enforces the line.  `scgi_params` and `uwsgi_params` are not shipped: the
+  build leaves those modules out.  `mime.types` stays as before.
+- Brotli is compiled in statically.  `http.d/brotli_conf` holds plain
+  directives that setup.sh renders to `http.d/brotli.conf`; there is no
+  `load_module` and no `modules-enabled` directory.
+- Open-file and umask limits live in the `nginx.service` unit that setup.sh
+  writes (`LimitNOFILE=524288`, `UMask=0027`), so the tree no longer ships a
+  systemd drop-in (`scripts/limit_nofile.conf`) or an `/etc/default` file
+  (`scripts/etc_default_nginx`).
+- `scripts/cloudflare.sh` (run from cron) rewrites
+  `/etc/nginx/http.d/cloudflare.conf`, tests it with the compiled binary
+  (`/usr/local/lib/setup-nginx/sbin/nginx -t`) and reloads a running
+  `nginx.service`.
+- TLS: the default and catch-all servers use the host's self-signed origin
+  certificate in `/etc/nginx/ssl/default` (Cloudflare Full mode).
+  Open-source nginx has no built-in ACME client of Angie's kind; the 1.22
+  migration moves vhosts that used Angie's ACME to that certificate, and the
+  `http.d/letsencrypt_conf` sample is gone.
 
 ## Local fork changes
 
-This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.6.12:
+This fork carries the nginx fixes validated with `setup.sh` 1.6.12 (names as
+in ubuntu-setup-script 1.22):
 
 - Hardware-aware tuning is owned by `ubuntu-setup-script/setup.sh` (the
-  `--optimize` command, also used by the installers). `setup.sh --sync-angie`
-  re-applies the same profile on an existing host. The deployer
-  (`deploy_angie_tree()`) lives in setup.sh and only syncs the repository
+  `--optimize` command, also used by the installers). Re-running
+  `--optimize` re-applies the same profile on an existing host. The deployer
+  (`deploy_nginx_tree()`) lives in setup.sh and only syncs the repository
   tree; setup.sh scales worker
   descriptors/connections, FastCGI buffers, TLS session
   cache, open-file caches, request-limit zones and HTTP cache sizes from the
@@ -67,7 +80,7 @@ This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.6.12:
   timeout on Ubuntu.
 - The global 16 MB/s `limit_rate` cap is disabled; use per-vhost limits.
 - There is **no FastCGI upstream keepalive cache**: every idle connection pins one
-  PHP-FPM worker and the cache is per Angie worker, so a request on an Angie
+  PHP-FPM worker and the cache is per nginx worker, so a request on an nginx
   worker without a cached connection waits for the old 60 s
   `keepalive_timeout` (measured: 4-7 of 64 live /login requests took 60-112 s
   on a live XenForo origin). `fastcgi_keep_conn` is `off` in `h5bp/php*.conf` for the
@@ -75,7 +88,7 @@ This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.6.12:
 - `h5bp/php*.conf` uses 128×32k FastCGI buffers instead of 512×32k, and fixes
   `PATH_TRANSLATED` so PHP-FPM does not return “Access denied”.
 - TLS session tickets and 0-RTT early data are disabled by default.
-- `snippets/fastcgi-php.conf` is included (Angie does not ship it).
+- `snippets/fastcgi-php.conf` is included (a source build does not install it).
 - The safe optional configs are enabled as real `.conf` files: FastCGI cache,
   XenForo proxy/WebSocket/cache, proxy cache, the credential limiter and
   the referer map. Module-dependent snippets (Brotli, Naxsi, ngx_waf, trim,
@@ -90,8 +103,8 @@ This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.6.12:
   Set `CONFIG_SOURCE_DIR=/path` to deploy a local checkout; `CONFIG_REPO_REF`
   selects a branch or tag.
 - `scripts/cloudflare.sh` now validates both Cloudflare IP lists, writes
-  `/etc/angie/http.d/cloudflare.conf` atomically, and only reloads after
-  `angie -t` passes. A failed download leaves the previous file intact.
+  `/etc/nginx/http.d/cloudflare.conf` atomically, and only reloads after
+  `nginx -t` passes. A failed download leaves the previous file intact.
 - `h5bp/wordpress_cache.conf` adds a cookie-aware guest page cache for
   WordPress (60 s, bypassed for logged-in users, POSTs, admin, cron and REST).
   The bypass decision is assembled with `map` in
@@ -103,12 +116,12 @@ This fork carries the Angie/Nginx fixes validated with `setup.sh` 1.6.12:
   guest cookies. Any other cookie, such as a plugin session or an SSO token,
   is rendered by PHP and never stored, so a cached page cannot leak one
   visitor's state to another.
-- Removed the unused `scripts/install_angie.sh`; package installation is owned
+- Removed the unused install script; building and installing nginx is owned
   by `setup.sh`, so this repository stays limited to configuration and config
   deployment.
 - PHP-FPM pool templates, `custom_dan.ini` and `php-fpm-limits.conf` moved to
-  `ubuntu-setup-script/configs/php/`. They are not Angie configuration and are
-  no longer synced into `/etc/angie/scripts`.
+  `ubuntu-setup-script/configs/php/`. They are not nginx configuration and are
+  no longer synced into `/etc/nginx/scripts`.
 - Added `sample_php.conf` (generic/Lychee front controller) and
   `sample_node.conf` (Node proxy + WebSocket) templates.
 - Template defects were repaired (duplicate SSL/proxy includes, `;;`, missing
@@ -284,12 +297,15 @@ nginx -s reload
 
 ## Support
 
- * Angie 1.10+ (the tree is Angie-first: it uses Angie's `http2 on`,
-   `ssl_certificate_cache` and optional modules)
- * nginx 1.27.4+ (older 1.25/1.26 builds reject `ssl_certificate_cache`;
-   Tengine 3.1 and Ubuntu 24.04's nginx 1.24 do not load the TLS vhosts)
- * FreeNginx 1.31+ and OpenResty 1.29+ are close enough to nginx mainline
-   for the non-Angie modules; the setup script itself only installs Angie.
+ * nginx mainline 1.27.4+ as built by ubuntu-setup-script 1.22
+   (`ssl_certificate_cache` needs 1.27.4; the tree also needs threads,
+   http_v2, http_v3, realip, gzip_static, auth_basic, limit_req and the
+   static ngx_brotli module).  CI builds exactly that binary with the setup
+   repository's `tools/nginx-build.sh` in CI mode, at the ref in
+   `scripts/uss-ref`, and runs `nginx -t` on the tree and every template.
+ * Distribution nginx packages (Ubuntu 24.04's 1.24) and nginx.org's packages
+   are not the target: they lack Brotli or `ssl_certificate_cache`, and they
+   carry modules the lean build leaves out.
 
 
 ## Contributing

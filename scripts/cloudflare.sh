@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Refresh the Cloudflare real-IP trust list for Angie/Nginx.
+# Refresh the Cloudflare real-IP trust list for nginx (ubuntu-setup-script
+# 1.22: compiled nginx, configuration in /etc/nginx, unit nginx.service).
 #
 # The file is written atomically and only replaced after the downloaded ranges
 # validate, so a Cloudflare outage or an HTML error page can never leave a
@@ -7,7 +8,12 @@
 set -Eeuo pipefail
 umask 022
 
-readonly CLOUDFLARE_FILE_PATH=/etc/angie/http.d/cloudflare.conf
+readonly CLOUDFLARE_FILE_PATH=/etc/nginx/http.d/cloudflare.conf
+# Absolute paths: cron's PATH has neither /usr/local/sbin nor the build root,
+# and /usr/sbin/nginx is not ours (a distro package path).
+readonly NGINX_BIN=/usr/local/lib/setup-nginx/sbin/nginx
+readonly NGINX_CONF=/etc/nginx/nginx.conf
+[[ -x $NGINX_BIN ]] || { echo "ERROR: $NGINX_BIN not found; nothing changed" >&2; exit 1; }
 TMP_FILE=$(mktemp "${CLOUDFLARE_FILE_PATH}.XXXXXX")
 readonly TMP_FILE
 trap 'rm -f "$TMP_FILE"' EXIT
@@ -36,7 +42,7 @@ fetch_ranges() {
   echo "real_ip_header CF-Connecting-IP;"
 } > "$TMP_FILE"
 
-# Keep the live file until the generated one passes angie -t.  Installing
+# Keep the live file until the generated one passes nginx -t.  Installing
 # first and testing second left a rejected list in place for the next reload.
 BACKUP_FILE=""
 if [[ -f $CLOUDFLARE_FILE_PATH ]]; then
@@ -46,14 +52,19 @@ fi
 install -m 644 "$TMP_FILE" "$CLOUDFLARE_FILE_PATH"
 rm -f "$TMP_FILE"
 
-if ! /usr/sbin/angie -t; then
+if ! "$NGINX_BIN" -t -q -c "$NGINX_CONF"; then
   if [[ -n $BACKUP_FILE ]]; then
     install -m 644 "$BACKUP_FILE" "$CLOUDFLARE_FILE_PATH"
-    /usr/sbin/angie -t >/dev/null 2>&1 || true
+    "$NGINX_BIN" -t -q -c "$NGINX_CONF" >/dev/null 2>&1 || true
   fi
   rm -f "$BACKUP_FILE"
-  echo "ERROR: Angie rejected the refreshed Cloudflare list; the previous file was restored" >&2
+  echo "ERROR: nginx rejected the refreshed Cloudflare list; the previous file was restored" >&2
   exit 1
 fi
 rm -f "$BACKUP_FILE"
-/usr/bin/systemctl reload angie.service
+# Reload only a running nginx: while the unit is held down (for example until
+# the native rebuild after a CPU change finishes) the next start reads the
+# new file anyway, and a failed reload would only mail a cron error.
+if /usr/bin/systemctl is-active --quiet nginx.service; then
+  /usr/bin/systemctl reload nginx.service
+fi

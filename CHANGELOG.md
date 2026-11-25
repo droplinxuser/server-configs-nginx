@@ -1,3 +1,69 @@
+### Local fork changes (November 25, 2026, 1.7.0, branch `nginx`)
+
+* **The tree for nginx built from source, for ubuntu-setup-script 1.22.0.**
+  1.22 replaces Angie with nginx mainline compiled from source (binary under
+  `/usr/local/lib/setup-nginx`, unit `nginx.service`, configuration in
+  `/etc/nginx`) and migrates existing hosts once with `--optimize`.  This
+  tree lives on the new `nginx` branch; **`main` stays the Angie tree until
+  every host runs 1.22**, because 1.21.x fetches `main` and refuses a tree
+  without `angie.conf`.  Hosts that stay on 1.21.x can pin
+  `CONFIG_REPO_REF` to the last Angie commit; merging `nginx` into `main`
+  afterwards is a manual operator step (README, "Branches").
+* `angie.conf` is now `nginx.conf` (renamed, history kept), with
+  `pid /run/nginx.pid` (the build's `--pid-path` and the unit's `PIDFile=`;
+  with the old path systemd's Type=forking start would time out) and logs in
+  `/var/www/logs/nginx`.  Every `/etc/angie` path in the tree, the templates
+  and the h5bp includes is now `/etc/nginx`, every template's `error_log`
+  goes to `/var/www/logs/nginx`, and the comments name nginx.
+* **The tree ships its own `fastcgi.conf` and `fastcgi_params`.**  A source
+  build installs only the binary (a `make install` over a live `/etc/nginx`
+  would overwrite `nginx.conf` and `mime.types`), so nothing else provides
+  them.  They are upstream's files with `SERVER_SOFTWARE nginx` and no
+  version: WordPress sets `$is_nginx` from it and `got_url_rewrite()`
+  depends on that (saving the permalinks under Angie's `Angie/<version>`
+  value could prefix every URL with `/index.php`); the value only reaches
+  PHP, and leaving the version out keeps it out of phpinfo() pages and
+  error reports.  No Angie variables.  `scgi_params` and `uwsgi_params` are
+  not shipped: the build leaves those modules out.  `mime.types` is
+  unchanged.
+* **Brotli is a static module.**  The `include /etc/angie/modules-enabled/*.conf`
+  line is gone from the main file; `http.d/brotli_conf` stays plain
+  directives that setup.sh renders to `http.d/brotli.conf`, with no
+  `load_module` (a dynamic `.so` must match the exact binary, so a native
+  rebuild after a CPU change or a version bump would fail `nginx -t`).
+* Angie-only configuration removed: the `http.d/letsencrypt_conf`
+  `acme_client` sample, the commented `acme`/`$acme_cert_*` lines in
+  `h5bp/hostname_ssl.conf` and the README's Angie ACME section.  The 1.22
+  migration moves vhosts that used Angie's ACME to the host's self-signed
+  origin certificate.
+* `scripts/limit_nofile.conf` (the `angie.service.d` drop-in) and
+  `scripts/etc_default_nginx` are removed: the `nginx.service` unit that
+  setup.sh 1.22 writes carries `LimitNOFILE=524288` and `UMask=0027` itself,
+  and nothing reads `/etc/default/nginx`.
+* `scripts/cloudflare.sh` writes `/etc/nginx/http.d/cloudflare.conf`, tests
+  it with `/usr/local/lib/setup-nginx/sbin/nginx -t -c /etc/nginx/nginx.conf`
+  (absolute: cron's PATH has no `/usr/local/sbin`, and `/usr/sbin/nginx` is a
+  distribution path), restores the previous list when the test fails, and
+  reloads `nginx.service` only while it is running (a unit held down until a
+  native rebuild finishes reads the new file when it starts).
+* **CI builds the binary the fleet runs.**  `scripts/ci-build-nginx.sh`
+  checks out ubuntu-setup-script at the ref in `scripts/uss-ref` (`v1.22`
+  until the release is tagged) and runs its `tools/nginx-build.sh build` with
+  `NGINX_BUILD_CI=1`: the same configure module set, static Brotli and the
+  branding patch, without LTO, BOLT or `-march=native`.  nginx.org's package
+  would have no Brotli and carry the modules the lean build leaves out, so a
+  template using `ssi` or `limit_conn` would pass CI and fail on every host.
+  `scripts/ci-config-test.sh` installs the tree into `/etc/nginx` (its own
+  FastCGI files, Brotli as directives, the tmpfiles directories), runs
+  `nginx -t` on the base tree and with all 14 templates as vhosts, then
+  starts the binary on 127.0.0.1 and fails if a 404 names nginx in a header
+  or the body.  It refuses to replace a non-empty `/etc/nginx` outside CI.
+  `scripts/ci-guards.sh` (a job of its own) requires exactly one
+  `fastcgi_param SERVER_SOFTWARE nginx;` in both FastCGI files with no
+  `$nginx_version`, finds no trace of Angie outside README.md and
+  CHANGELOG.md, no `load_module`/`modules-enabled`, and checks the pid and
+  log paths and `scripts/uss-ref`.
+
 ### Local fork changes (November 25, 2026, 1.6.61)
 
 * **The credential limiter is the only request limit left** (operator

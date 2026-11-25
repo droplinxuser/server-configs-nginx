@@ -11,25 +11,52 @@ permissions:
   contents: read
 
 jobs:
-  config:
-    name: angie -t
+  guards:
+    name: Tree guards
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install Angie and its Brotli module
-        run: |
-          . /etc/os-release
-          sudo curl -fsSL --retry 3 -o /usr/share/keyrings/angie-signing.gpg \
-            https://angie.software/keys/angie-signing.gpg
-          echo "deb [signed-by=/usr/share/keyrings/angie-signing.gpg] https://download.angie.software/angie/${ID}/${VERSION_ID} ${VERSION_CODENAME} main" \
-            | sudo tee /etc/apt/sources.list.d/angie.list
-          sudo apt-get update -q
-          sudo apt-get install -y -q angie angie-module-brotli
-          angie -V
+      # SERVER_SOFTWARE "nginx" without a version in both FastCGI files, no
+      # trace of the previous web server, nginx.conf/pid/log layout, pinned
+      # ubuntu-setup-script ref.
+      - name: Static guards
+        run: bash scripts/ci-guards.sh
 
-      - name: Configuration test (base tree and every vhost template)
-        run: sudo bash scripts/ci-config-test.sh
+  config:
+    name: nginx -t (ubuntu-setup-script build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # The binary under test is ubuntu-setup-script's own build (same
+      # configure module set as the fleet, static Brotli, branding patch),
+      # from the ref pinned in scripts/uss-ref, not nginx.org's package.
+      - name: Pinned ubuntu-setup-script ref
+        id: uss
+        run: echo "ref=$(tr -d '[:space:]' < scripts/uss-ref)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v7
+        with:
+          repository: droplinxuser/ubuntu-setup-script
+          ref: ${{ steps.uss.outputs.ref }}
+          path: .uss
+
+      # CI mode compiles with the system toolchain and libraries (no LTO,
+      # BOLT or -march=native); the tool installs anything else it needs.
+      - name: Build prerequisites
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q build-essential cmake perl curl ca-certificates \
+            gnupg xz-utils libssl-dev libpcre2-dev zlib1g-dev libbrotli-dev
+
+      - name: Build nginx (tools/nginx-build.sh, NGINX_BUILD_CI=1)
+        run: sudo bash scripts/ci-build-nginx.sh .uss "$RUNNER_TEMP/nginx-ci"
+
+      - name: Configuration test (base tree, every vhost template, branding)
+        run: |
+          bin=$(cat "$RUNNER_TEMP/nginx-ci/nginx-bin.path")
+          sudo CI=true NGINX_BIN="$bin" bash scripts/ci-config-test.sh
 
   lint:
     name: ShellCheck and addresses
