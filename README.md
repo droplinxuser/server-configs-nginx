@@ -18,19 +18,20 @@ own PHP-FPM config.
 
 ## Branches
 
-| Branch | Tree | Used by |
-|---|---|---|
-| `nginx` | nginx built from source, `/etc/nginx`, logs in `/var/www/logs/nginx` | ubuntu-setup-script 1.22.0+ (`CONFIG_REPO_REF`) |
-| `main` | the previous Angie tree (`angie.conf`, `/etc/angie`) | ubuntu-setup-script 1.21.x |
+There is one branch, `main`: the nginx tree (nginx built from source,
+`/etc/nginx`, logs in `/var/www/logs/nginx`) that ubuntu-setup-script
+1.22.2+ downloads by default (`CONFIG_REPO_REF=main`).
 
-`main` stays the Angie tree until every host runs ubuntu-setup-script 1.22:
-1.21.x fetches `main` by default and refuses a tree without `angie.conf`, so
-changing `main` first would break every host that has not migrated yet.
-The last Angie tree is frozen as the tag `angie-final`: hosts that stay on
-1.21.x should run with `CONFIG_REPO_REF=angie-final`, so they keep working
-whatever happens to `main` later.  Once the whole fleet runs 1.22, merging `nginx` into `main` is a
-manual operator step, never automatic; until then a fix that applies to both
-trees is made on both branches.
+Two tags keep older setup.sh releases working:
+
+| Tag | Tree | For |
+|---|---|---|
+| `nginx` | the nginx tree as of 1.7.1 (frozen) | ubuntu-setup-script 1.22.0 and 1.22.1, whose default `CONFIG_REPO_REF` is `nginx` |
+| `angie-final` | the last Angie tree (`angie.conf`, `/etc/angie`) | hosts kept on ubuntu-setup-script 1.21.x (`CONFIG_REPO_REF=angie-final`) |
+
+A 1.21.x setup.sh that still downloads `main` refuses this tree (no
+`angie.conf`) and keeps its Angie tree.  Update the setup.sh checkout before
+`--optimize`: 1.22 migrates an Angie host to nginx.
 
 ## Layout on a host (1.22)
 

@@ -1,3 +1,14 @@
+### Local fork changes (November 26, 2026, 1.7.2)
+
+* **One branch.**  The nginx tree moved from the `nginx` branch to `main`
+  (a fast-forward: `main` was the 1.21 Angie tree, an ancestor of `nginx`).
+  The `nginx` branch is gone; the tag `nginx` freezes the 1.7.1 tree for
+  ubuntu-setup-script 1.22.0/1.22.1, which download `CONFIG_REPO_REF=nginx`
+  by default.  ubuntu-setup-script 1.22.2 downloads `main`.  The tag
+  `angie-final` still holds the last Angie tree.  A 1.21.x setup.sh that
+  downloads `main` refuses this tree (no `angie.conf`) and keeps serving
+  Angie: update the setup.sh checkout first, then `--optimize` migrates it.
+
 ### Local fork changes (November 26, 2026, 1.7.1, branch `nginx`)
 
 * **No pre-compressed content: `gzip_static` and `brotli_static` removed**
