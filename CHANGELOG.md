@@ -1,3 +1,66 @@
+### Local fork changes (November 27, 2026, 1.7.4)
+
+For ubuntu-setup-script 1.22.5.
+
+* **Dynamic Brotli level 1** in `http.d/brotli_conf` (was 4): on XenForo it
+  served 4.2-4.7 % more uncached req/s than level 4, with p99 equal or
+  lower, for about 16 % more bytes to Cloudflare.  ubuntu-setup-script
+  writes the same level, and `SETUP_BROTLI_LEVEL` overrides it.
+* **XenForo search and contact submissions are rate-limited** (operator
+  request).  `http.d/limit_req.conf` adds `search/search` and
+  `misc/contact` to both POST route maps, in the existing login zone and
+  key: 20 a minute per address after a burst of 10, IPv6 per /64, loopback
+  exempt.  Only `POST /search/search` runs a query (the search form and the
+  navbar quick search); result pages and every GET stay unlimited.
+* **The QUIC catch-all scales across workers.**  Both `listen 443 quic`
+  lines of `conf.d/1.https.default.conf` add `reuseport rcvbuf=4m
+  sndbuf=4m`: one UDP socket per worker, so HTTP/3 datagrams reach the
+  worker that holds the connection, and 4 MB buffers instead of 256 KB.  A
+  vhost that includes `h5bp/tls/http3.conf` must not repeat socket options.
+  `h5bp/tls/http3.conf` sets `quic_gso on` and notes that a server-level
+  `Alt-Svc` header is dropped in locations with their own `add_header`.
+  The comments now say 443/udp is open (`ufw allow 443` admits TCP and
+  UDP); the catch-all refuses every handshake.
+* **HTTP/3 is on by default in every vhost template** (operator request).
+  Each TLS server in `conf.d/templates` includes `h5bp/tls/http3.conf`
+  right after its `listen ... 443 ssl;` lines, so a site created from a
+  template answers HTTP/3 and advertises it with `Alt-Svc`.  Delete the
+  include line to turn it off for one vhost; ubuntu-setup-script 1.22.5
+  adds the include to existing vhosts (a commented-out include keeps one
+  off).  Behind Cloudflare it is idle today (Cloudflare reaches the
+  origin over TCP) and ready if Cloudflare starts using it.
+* **XenForo private trees match on the directory**: `location ^~ /src/` and
+  `/internal_data/` plus exact matches for the bare names, so
+  `/srcset-guide/` and the like reach XenForo.
+* **`scripts/cloudflare.sh` cannot install a truncated list**: a minimum
+  number of ranges per family, per-line syntax checks, `nginx -t` before
+  the reload and the previous file restored on failure (no file left after
+  a failed first run).  The generated header says the file is loaded at
+  http level and must not be included in a vhost.
+* Comments: the `/attachments` "higher burst" (the include only adds the
+  login limiter, whose key is empty there), the keepalive note in
+  `ssl_engine.conf`.
+* **Unmeasured performance opt-ins removed** (operator rule: an opt-in
+  that is not measured faster is deleted, not kept switched off):
+  * TLS 1.3 0-RTT early data: the commented `ssl_early_data` lines and
+    their notes in `h5bp/tls/policy_strict.conf` and `policy_balanced.conf`,
+    and the plumbing that existed only for it (the `Early-Data` proxy header
+    in the four proxy snippets and `HTTP_EARLY_DATA` in
+    `snippets/fastcgi-php-common.conf`).  Origins sit behind Cloudflare,
+    which never sends 0-RTT to the origin, and session tickets are off.
+  * `http.d/ppa_eilander_conf` (dynamic TLS record sizing),
+    `http.d/http_trim_filter_conf` (both need modules the source build does
+    not compile) and `http.d/reverse_proxy_conf` (a broken duplicate of the
+    working upstream keepalive example in `h5bp/proxy_pass.conf`, which
+    stays) are deleted; ubuntu-setup-script 1.22.5 retires them from hosts.
+  * The commented `proxy_request_buffering off` in
+    `h5bp/proxy_non_php.conf` (`proxy_ws.conf` keeps its live line) and the
+    FreeBSD `accept_filter` listen variants in the example templates.
+  * `h5bp/tls/ocsp_stapling.conf` is a comment-only stub, so an old include
+    still loads (origins use self-signed certificates behind Cloudflare
+    Full mode).
+* kTLS removed (measured 12-36 % slower on cached pages on both CPUs).
+
 ### Local fork changes (November 26, 2026, 1.7.3)
 
 * **Security: XenForo guest-cache poisoning with a zero-padded style or

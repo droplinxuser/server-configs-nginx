@@ -1,5 +1,0 @@
-upstream origin_proxy {
-  zone originproxy_zone 256k;
-  server http://1.2.3.4; # origin IP
-  keepalive 3;
-}

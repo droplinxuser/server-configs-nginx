@@ -97,16 +97,20 @@ in ubuntu-setup-script 1.22):
   same reason; a Unix-socket connect is cheaper than the stalls.
 - `h5bp/php*.conf` uses 128×32k FastCGI buffers instead of 512×32k, and fixes
   `PATH_TRANSLATED` so PHP-FPM does not return “Access denied”.
-- TLS session tickets and 0-RTT early data are disabled by default.
+- TLS session tickets are disabled by default, and TLS 1.3 0-RTT early data is
+  never enabled (no `ssl_early_data` opt-in or `Early-Data` header plumbing;
+  origins sit behind Cloudflare, which does not send 0-RTT to the origin).
 - `snippets/fastcgi-php.conf` is included (a source build does not install it).
 - The safe optional configs are enabled as real `.conf` files: FastCGI cache,
   XenForo proxy/WebSocket/cache, proxy cache, the credential limiter and
-  the referer map. Module-dependent snippets (Brotli, Naxsi, ngx_waf, trim,
+  the referer map. Module-dependent snippets (Brotli, Naxsi, ngx_waf,
   sysguard) remain disabled.
 - The only request limit is the credential limiter: login, registration and
-  password-reset submissions, 20 a minute per address after a burst of 10,
-  answered with `429`; loopback is exempt.  There are no generic per-IP
-  GET/POST limits and no `limit_conn` (removed in 1.6.61).
+  password-reset submissions, plus XenForo search (`POST /search/search`) and
+  contact-form (`POST /misc/contact`) submissions, 20 a minute per address
+  after a burst of 10, answered with `429`; loopback is exempt.  Search
+  result pages and every other GET are never limited.  There are no generic
+  per-IP GET/POST limits and no `limit_conn` (removed in 1.6.61).
 - Compression is dynamic only (gzip and Brotli); `gzip_static` and
   `brotli_static` were removed in 1.7.1 with the static modules.
 - The setup.sh deployer creates the `/home/*_cache` directories owned by
