@@ -2,10 +2,11 @@
 # Static guards for the nginx tree (no root, no binary needed).
 #
 #  1. fastcgi.conf and fastcgi_params each set SERVER_SOFTWARE exactly once,
-#     to "nginx" with no version: WordPress's $is_nginx / got_url_rewrite()
-#     need the name (permalinks lose /index.php otherwise), and a version
-#     would leak into phpinfo() pages and application error reports.  No
-#     $nginx_version, no previous server's variables or name.
+#     from $fastcgi_server_software (http.d/server_software.conf): "nginx"
+#     by default (WordPress's $is_nginx / got_url_rewrite() need the name;
+#     permalinks lose /index.php otherwise) and "nginx/$nginx_version" only
+#     for admin.php (XenForo's Server environment report).  No
+#     $nginx_version in the FastCGI files, no previous server's variables.
 #  2. No trace of the previous web server outside the history documents
 #     (CHANGELOG.md, README.md): its paths, binary or unit in a file that is
 #     deployed to /etc/nginx would break a host after the old package is
@@ -36,13 +37,24 @@ fi
 # 1. SERVER_SOFTWARE
 for f in fastcgi.conf fastcgi_params; do
   if [[ ! -f $f ]]; then bad "$f is missing (a source build installs no package copy)"; continue; fi
-  n_ok=$(grep -cE '^[[:space:]]*fastcgi_param[[:space:]]+SERVER_SOFTWARE[[:space:]]+nginx;[[:space:]]*$' "$f" || true)
+  n_ok=$(grep -cE '^[[:space:]]*fastcgi_param[[:space:]]+SERVER_SOFTWARE[[:space:]]+\$fastcgi_server_software;[[:space:]]*$' "$f" || true)
   n_all=$(grep -cE '^[[:space:]]*fastcgi_param[[:space:]]+SERVER_SOFTWARE[[:space:]]' "$f" || true)
-  [[ $n_ok == 1 && $n_all == 1 ]] || bad "$f: need exactly one 'fastcgi_param SERVER_SOFTWARE nginx;' (found ${n_ok} of ${n_all} SERVER_SOFTWARE lines)"
+  [[ $n_ok == 1 && $n_all == 1 ]] || bad "$f: need exactly one 'fastcgi_param SERVER_SOFTWARE \$fastcgi_server_software;' (found ${n_ok} of ${n_all} SERVER_SOFTWARE lines)"
   if grep -niE '\$nginx_version|\$'"${OLD}"'_|'"${OLD}"'/' "$f"; then
     bad "$f: version or previous-server variable present"
   fi
 done
+# The map: bare "nginx" by default, the version on admin.php only.
+m=http.d/server_software.conf
+if [[ ! -f $m ]]; then
+  bad "$m is missing (fastcgi.conf and fastcgi_params use \$fastcgi_server_software)"
+else
+  grep -qE '^[[:space:]]*map[[:space:]]+\$uri[[:space:]]+\$fastcgi_server_software[[:space:]]*\{' "$m" || bad "$m: no 'map \$uri \$fastcgi_server_software'"
+  grep -qE '^[[:space:]]*default[[:space:]]+nginx;[[:space:]]*$' "$m" || bad "$m: the default must be 'nginx' (no version)"
+  if [[ $(grep -cF 'nginx_version' "$m") != 1 ]] || ! grep -qF '"~(?:^|/)admin\.php$"   nginx/$nginx_version;' "$m"; then
+    bad "$m: \$nginx_version only on the admin.php line"
+  fi
+fi
 
 # 2. No trace of the previous server outside the history documents.
 for f in "${files[@]}"; do

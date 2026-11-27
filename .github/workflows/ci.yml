@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # SERVER_SOFTWARE "nginx" without a version in both FastCGI files, no
+      # SERVER_SOFTWARE from the admin.php-only version map in both FastCGI files, no
       # trace of the previous web server, nginx.conf/pid/log layout, pinned
       # ubuntu-setup-script ref.
       - name: Static guards

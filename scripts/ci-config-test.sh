@@ -95,8 +95,9 @@ fi
 
 say "installing the tree into ${PREFIX}"
 # Everything comes from this tree, the FastCGI parameter files included: a
-# source build installs no package files, and the tree's copies carry
-# SERVER_SOFTWARE "nginx" without a version (scripts/ci-guards.sh).
+# source build installs no package files, and the tree's copies pass
+# SERVER_SOFTWARE from $fastcgi_server_software (http.d/server_software.conf:
+# "nginx", or nginx/<version> on admin.php only; scripts/ci-guards.sh).
 stage=$WORK/stage
 mkdir -p "$stage"
 cp -a "$TREE"/nginx.conf "$TREE"/mime.types "$TREE"/fastcgi.conf "$TREE"/fastcgi_params \

@@ -40,9 +40,12 @@ A 1.21.x setup.sh that still downloads `main` refuses this tree (no
   `/var/www/logs/nginx/error.log`.
 - `fastcgi.conf` and `fastcgi_params` are shipped by the tree, because a
   source build installs only the binary.  They are upstream's files with
-  `SERVER_SOFTWARE nginx` (no version): WordPress detects nginx through it
-  (permalinks without `/index.php`), and the value only reaches PHP.  CI
-  enforces the line.  `scgi_params` and `uwsgi_params` are not shipped: the
+  `SERVER_SOFTWARE $fastcgi_server_software` (`http.d/server_software.conf`):
+  `nginx` with no version, and `nginx/<version>` only on `admin.php`, so
+  XenForo's admin Server environment report shows each host's nginx
+  version.  WordPress detects nginx through it (permalinks without
+  `/index.php`), and the value only reaches PHP.  CI enforces the line and
+  the map.  `scgi_params` and `uwsgi_params` are not shipped: the
   build leaves those modules out.  `mime.types` stays as before.
 - Brotli is compiled in statically, as ngx_brotli's filter module only
   (dynamic compression).  `http.d/brotli_conf` holds plain directives that

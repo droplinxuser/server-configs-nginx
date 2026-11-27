@@ -1,3 +1,18 @@
+### Local fork changes (November 28, 2026, 1.7.5)
+
+For ubuntu-setup-script 1.22.6.
+
+* **XenForo's admin page shows the nginx version again** (operator
+  request).  `fastcgi.conf` and `fastcgi_params` pass `SERVER_SOFTWARE`
+  from `$fastcgi_server_software` (new `http.d/server_software.conf`):
+  `nginx/<version>` on `admin.php` only, so Tools > Server environment
+  report shows "Server software" (XenForo prints it only in the
+  `name/version` form, which Angie's `Angie/1.12.4` matched and the bare
+  `nginx` did not), and `nginx` everywhere else as before.  WordPress keeps
+  detecting nginx, the value never reaches clients, and the map is only
+  evaluated for requests passed to PHP.  `scripts/ci-guards.sh` checks the
+  FastCGI lines and the map.
+
 ### Local fork changes (November 27, 2026, 1.7.4)
 
 For ubuntu-setup-script 1.22.5.
